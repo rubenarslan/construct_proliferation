@@ -1,0 +1,53 @@
+---
+title: "Import"
+author: "Ruben Arslan"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(groundhog)
+groundhog.library(c("tidyverse", "codebook", "xml2"), date = "2024-02-24")
+```
+
+
+```{r}
+records_data_1 <- read_xml("../sober_rubric/raw_data/PTMain_01.xml")
+records_data_2 <- read_xml("../sober_rubric/raw_data/PTMain_02.xml")
+records_data_3 <- read_xml("../sober_rubric/raw_data/PTMain_03.xml")
+records_data_4 <- read_xml("../sober_rubric/raw_data/PTMain_04.xml")
+records_data_5 <- read_xml("../sober_rubric/raw_data/PTMain_05.xml")
+records_data_6 <- read_xml("../sober_rubric/raw_data/PTMain_06.xml")
+records_data_7 <- read_xml("../sober_rubric/raw_data/PTMain_07.xml")
+records_data_8 <- read_xml("../sober_rubric/raw_data/PTMain_08.xml")
+
+
+
+# convert to list, then dataframe
+records_list_1 <- as_list(records_data_1) %>% as_tibble()
+records_list_2 <- as_list(records_data_2) %>% as_tibble()
+records_list_3 <- as_list(records_data_3) %>% as_tibble()
+records_list_4 <- as_list(records_data_4) %>% as_tibble()
+records_list_5 <- as_list(records_data_5) %>% as_tibble()
+records_list_6 <- as_list(records_data_6) %>% as_tibble()
+records_list_7 <- as_list(records_data_7) %>% as_tibble()
+records_list_8 <- as_list(records_data_8) %>% as_tibble()
+
+
+records_wide <-  bind_rows(records_list_1,
+                       records_list_2,
+                       records_list_3,
+                       records_list_4,
+                       records_list_5,
+                       records_list_6,
+                       records_list_7,
+                       records_list_8) %>% 
+  # remove meta-data rows (Owner and Summary)
+  filter(sapply(PTXML, function(x) "DOI" %in% names(x))) %>% 
+  # unnest the records to get the higher level variables
+  unnest_wider(PTXML)
+
+save(records_wide, file = "../sober_rubric/raw_data/records_wide.rda")
+```

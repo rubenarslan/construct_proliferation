@@ -1,0 +1,208 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r}
+library(tidyverse)
+## get my transliteration table (I tried to guess the PsycInfo ASCII name from the PsycTESTS name)
+translit <- readRDS("raw_data/psycinfo_psyctests_names.rds")
+
+## get our first scrape (by journal, checking counts for each year in each journal for top tests)
+psycinfo_scrape_by_journal <- read_tsv('raw_data/merged_table_all.tsv') %>% 
+  drop_na(Name) %>% 
+  # this tsv can be found in "Scraping-EBSCO-Host\data\merged tables"
+#  mutate(Name = toTitleCase(Name)) %>% 
+  rename(usage_count = "Hit Count") %>% 
+  group_by(Name, Year) %>% 
+  summarise(usage_count = sum(usage_count))
+
+## get our second scrape (by test DOI and year)
+overview <- readr::read_tsv("raw_data/20230617_ebsco_scrape_clean_overview_table_1.tsv")
+byyear <- readr::read_tsv("raw_data/20230617_ebsco_scrape_table_years_1.tsv")
+byyear %>% group_by(DOI) %>% summarise(Hits = sum(Hits, na.rm=T)) %>% pull(Hits) %>% table()
+
+one_hit_wonders <- overview %>% filter(Hits == 1) %>% 
+  mutate(Year = first_pub_year) %>% 
+  mutate(Hits = coalesce(Hits, 1))
+# for some few, the call was repeated by year for some reason
+one_hit_wonders %>% select(DOI, first_pub_year) %>% inner_join(byyear, by = "DOI") %>% arrange(DOI)
+
+byyear <- byyear %>% anti_join(one_hit_wonders, by = "DOI")
+
+psycinfo_by_doi <- one_hit_wonders %>% 
+  select(DOI, Year, Hits) %>% 
+  bind_rows(byyear) %>% 
+  left_join(overview %>% rename(total_hits = Hits), by = "DOI")
+
+
+## don't use tests with names that occur many times
+dupe_names <- translit %>% group_by(name_psycinfo) %>% filter(n() > 1) %>% ungroup()
+translit <- translit %>% group_by(name_psycinfo) %>% 
+  mutate(non_unique_name = n() > 1) %>% 
+  filter(row_number() == 1) %>% ungroup()
+
+# merge it all
+psycinfo <- psycinfo_by_doi %>% 
+  full_join(translit %>% select(DOI, name_psycinfo, NameOC), by = "DOI") %>% 
+  full_join(psycinfo_scrape_by_journal, by = c("name_psycinfo" = "Name", "Year")) %>% 
+  rename(hits_scrape_1 = usage_count,
+         hits_scrape_2 = Hits,
+         total_hits_scrape_2 = total_hits) %>% 
+  group_by(name_psycinfo) %>% 
+  mutate(total_hits_scrape_1 = sum(hits_scrape_1))
+psycinfo %>% is.na() %>% colSums()
+
+## aggregate it all
+psycinfo_overall <- psycinfo %>% 
+  group_by(name_psycinfo) %>% 
+  summarise(total_hits_scrape_1 = sum(hits_scrape_1, na.rm = T),
+         total_hits_scrape_2 = sum(hits_scrape_2, na.rm = T)) %>% 
+  left_join(translit %>% select(DOI, name_psycinfo))
+
+## correlate totals
+cor.test(psycinfo_overall$total_hits_scrape_1, psycinfo_overall$total_hits_scrape_2)
+psycinfo_overall %>% 
+  filter(total_hits_scrape_1 > 0, total_hits_scrape_2 > 0) %>% 
+  summarise(cor(total_hits_scrape_1, total_hits_scrape_2))
+
+
+## correlate by year, diffs, proportions
+cor.test(psycinfo$hits_scrape_1, psycinfo$hits_scrape_2)
+psycinfo %>%  mutate(diff = hits_scrape_2 - hits_scrape_1) %>% pull(diff) %>% abs() %>% mean(na.rm=T)
+psycinfo %>%  mutate(prop = hits_scrape_2/ hits_scrape_1) %>% pull(prop) %>%  qplot() + scale_x_log10()
+psycinfo %>%  mutate(diff = hits_scrape_2 - hits_scrape_1) %>% pull(diff) %>%  mean(na.rm=T)
+# psycinfo %>% filter(hits_scrape_1 > hits_scrape_2) %>% select(DOI, Year, name_psycinfo, NameOC, hits_scrape_1, hits_scrape_2) %>% mutate(diff = hits_scrape_2 - hits_scrape_1) %>% arrange(diff) %>% View()
+
+psycinfo %>% filter(hits_scrape_1 < hits_scrape_2) %>% nrow()
+psycinfo %>%  mutate(diff = hits_scrape_2 - hits_scrape_1) %>% pull(diff) %>% table() %>% sort()
+
+# psycinfo %>% filter(hits_scrape_1 < hits_scrape_2) %>% select(DOI, Year, name_psycinfo, NameOC, hits_scrape_1, hits_scrape_2) %>% mutate(diff = hits_scrape_2 - hits_scrape_1) %>% arrange(diff) %>% View()
+```
+
+
+## Top Tests in each
+
+### Only in PsycInfo Scrape 1
+```{r cols.print=3}
+psycinfo_overall %>% 
+  ungroup() %>% 
+  filter(total_hits_scrape_1 > 0,
+         total_hits_scrape_2 == 0) %>% 
+  summarise(n(), sum(total_hits_scrape_1), sum(total_hits_scrape_1)/n())
+
+options(cols.min.print = 2, cols.print = 2)
+```
+
+
+```{r cols.min.print=2}
+psycinfo_overall %>% 
+  ungroup() %>% 
+  # filter(is.na(DOI)) %>%
+  filter(total_hits_scrape_2 == 0, total_hits_scrape_1 >= 1) %>% 
+  arrange(desc(total_hits_scrape_1)) %>% 
+  select(name_psycinfo, total_hits_scrape_1) %>% 
+  arrange(desc(total_hits_scrape_1)) %>% 
+  DT::datatable()
+```
+
+### Only in PsycTests Scrape 2
+```{r cols.print=3}
+psycinfo_overall %>% 
+  ungroup() %>% 
+  filter(total_hits_scrape_1 == 0,
+         total_hits_scrape_2 > 0) %>% 
+  summarise(n(), sum(total_hits_scrape_2), sum(total_hits_scrape_2)/n())
+```
+
+
+```{r cols.min.print=2}
+psycinfo_overall %>% 
+  ungroup() %>% 
+  filter(total_hits_scrape_1 == 0, total_hits_scrape_2 >= 1) %>% 
+  # filter(!is.na(DOI), is.na(total_hits_scrape_1) | total_hits_scrape_1 == 0) %>% 
+  drop_na(name_psycinfo, total_hits_scrape_2) %>% 
+  arrange(desc(total_hits_scrape_2)) %>% 
+  select( name_psycinfo, total_hits_scrape_2) %>% 
+  DT::datatable()
+```
+
+
+### Hits only in scrape 1, even though we have a match for the name
+```{r}
+psycinfo_overall %>% 
+  ungroup() %>% 
+  filter(!is.na(DOI),
+         total_hits_scrape_1 > 0,
+         total_hits_scrape_2 == 0) %>% 
+  summarise(n(), sum(total_hits_scrape_1), sum(total_hits_scrape_1)/n())
+```
+
+### Hits only in scrape 1 without a clear match for the name
+```{r}
+psycinfo_overall %>% 
+  ungroup() %>% 
+  filter(is.na(DOI),
+         total_hits_scrape_1 > 0,
+         total_hits_scrape_2 == 0) %>% 
+  summarise(n(), sum(total_hits_scrape_1), sum(total_hits_scrape_1)/n())
+```
+
+## Merge Scrape 1 and 2
+```{r}
+psycinfo_scrape_1_without_hits_in_2 <- psycinfo_overall %>% 
+    ungroup() %>% 
+    filter(total_hits_scrape_1 > 0, is.na(total_hits_scrape_2) | total_hits_scrape_2 == 0) %>% 
+    select(DOI, name_psycinfo) %>% 
+    distinct(name_psycinfo, .keep_all = TRUE) %>% 
+    left_join(psycinfo_scrape_by_journal %>% 
+     rename(name_psycinfo = Name, Hits = usage_count), by = "name_psycinfo", multiple = "all") %>% 
+    mutate(DOI = coalesce(DOI, name_psycinfo)) %>% 
+    group_by(DOI) %>% 
+    mutate(first_pub_year = min(Year, na.rm = T),
+           last_pub_year = max(Year, na.rm = T),
+           total_hits = sum(Hits, na.rm = T)) %>% 
+  ungroup()
+
+psycinfo_scrape_1_without_hits_in_2 %>% 
+  summarise(n_distinct(DOI), sum(Hits), sum(Hits)/n_distinct(DOI))
+
+psycinfo_by_doi_with_hits <- psycinfo_by_doi %>%
+  drop_na(Hits, Year) %>% 
+  anti_join(psycinfo_overall %>% filter(total_hits_scrape_2 == 0) %>% select(DOI), by = "DOI") %>% 
+  left_join(translit %>% select(DOI, name_psycinfo), by = "DOI")
+sum(is.na(psycinfo_by_doi_with_hits$name_psycinfo))
+sum(!is.na(psycinfo_by_doi_with_hits$name_psycinfo))
+
+psycinfo_by_doi_with_hits %>% 
+  summarise(n_distinct(DOI), sum(Hits, na.rm = T), sum(Hits, na.rm = T)/n_distinct(DOI))
+
+psycinfo_merged <- bind_rows(
+  scrape_2 = psycinfo_by_doi_with_hits, 
+  scrape_1 = psycinfo_scrape_1_without_hits_in_2, .id = "source")
+
+psycinfo_merged %>% 
+  summarise(n_distinct(DOI), sum(Hits, na.rm = T), sum(Hits, na.rm = T)/n_distinct(DOI))
+
+saveRDS(psycinfo_merged, "raw_data/psycinfo_merged_scrape_1_and_2.rds")
+```
+
+
+## Joint top list
+
+```{r}
+psycinfo_merged %>% 
+  group_by(DOI, name_psycinfo, source) %>%
+  summarise(total_hits = sum(Hits, na.rm  = T)) %>% 
+  arrange(desc(total_hits)) %>% 
+  ungroup() %>% 
+  select( source, name_psycinfo, total_hits) %>% 
+  DT::datatable()
+```
+

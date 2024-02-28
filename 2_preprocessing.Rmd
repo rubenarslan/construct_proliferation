@@ -1,0 +1,708 @@
+---
+title: "2_preprocessing"
+date: '2023-03-20'
+output: html_document
+---
+
+https://www.apa.org/pubs/databases/psyctests/field-guide
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(groundhog)
+groundhog.library(c("tidyverse", "codebook", "xml2", "kableExtra", "tools"), date = "2024-02-14")
+```
+
+## import records_wide
+```{r}
+load(file = "../sober_rubric/raw_data/records_wide.rda")
+```
+
+
+## Complexity of columns
+I wrote a little summary function to find columns which always consist only of a length 1 list with a single element. These can be losslessly translated to simple vectors.
+```{r}
+col_structures <- records_wide %>% 
+  ungroup() %>% 
+  head(1000) %>% # looked only at 1000 to save time
+  rowwise() %>% # row wise is necessary to determine the length of the list in each row
+  mutate_all(~ 
+               if_else(length(.) == 1, 
+                       pluck_depth(.[[1]]),
+                       pluck_depth(.))) %>% 
+  ungroup() %>% 
+  summarise_all(max) # take the maximum
+
+# fetch all "simple" columns
+col_structures %>% pivot_longer(everything()) %>%
+  filter(value == 1) %>% pull(name) %>% 
+  cat(sep = "\n")
+# fetch all non-simple columns
+col_structures %>% pivot_longer(everything()) %>% filter(value > 1) %>% pull(name) %>% cat(sep = "\n")
+```
+
+
+### hoist variables which are just length 1 lists to turn them into regular characters
+Simplify all the simple list columns to character columns.
+```{r}
+records_wide <- records_wide %>% 
+  hoist(DOI, DOI = list(1, 1), .remove = FALSE) %>%
+  hoist(Name, Name = list(1, 1), .remove = FALSE) %>%
+  hoist(Purpose, Purpose = list(1, 1), .remove = FALSE) %>%
+  hoist(Description, Description = list(1, 1), .remove = FALSE) %>%
+  hoist(InstrumentType, InstrumentType = list(1, 1), .remove = FALSE) %>%
+  hoist(Format, Format = list(1, 1), .remove = FALSE) %>%
+  hoist(SupportingDocumentationLink, SupportingDocumentationLink = list(1, 1), .remove = FALSE) %>%
+  hoist(Commercial, Commercial = list(1, 1), .remove = FALSE) %>%
+  hoist(Permissions, Permissions = list(1, 1), .remove = FALSE) %>%
+  hoist(Fee, Fee = list(1, 1), .remove = FALSE) %>%
+  hoist(TestYear, TestYear = list(1, 1), .remove = FALSE) %>%
+  hoist(TestItemsAvailable, TestItemsAvailable = list(1, 1), .remove = FALSE) %>%
+  hoist(Reliability, Reliability = list(1, 1), .remove = FALSE) %>%
+  hoist(Validity, Validity = list(1, 1), .remove = FALSE) %>%
+  hoist(FactorAnalysis, FactorAnalysis = list(1, 1), .remove = FALSE) %>%
+  hoist(NumberOfTestItems, NumberOfTestItems = list(1, 1), .remove = FALSE) %>%
+  hoist(TestReleaseDate, TestReleaseDate = list(1, 1), .remove = FALSE) %>%
+  hoist(TestCorrectionDate, TestCorrectionDate = list(1, 1), .remove = FALSE) %>%
+  hoist(FactorsAndSubscales, FactorsAndSubscales = list(1, 1), .remove = FALSE)
+
+records_wide$Reliability <- str_replace_all(records_wide$Reliability, "[[:space:]]+", " ")
+records_wide$Validity <- str_replace_all(records_wide$Validity, "[[:space:]]+", " ")
+records_wide$FactorAnalysis <- str_replace_all(records_wide$FactorAnalysis, "[[:space:]]+", " ")
+records_wide$FactorsAndSubscales <- str_replace_all(records_wide$FactorsAndSubscales, "[[:space:]]+", " ")
+
+instrument_types <- tibble(InstrumentType = 
+                             c("Inventory/Questionnaire", "Rating Scale", "Test", "Battery", 
+                               "Index/Indicator", "Survey", "Screener", "Task", "Checklist", 
+                               "Interview Schedule/Guide", "Diary", "Coding Scheme", "Projective Measure", 
+                               "Q Sort", "Vignette/Scenario"),
+                           instrument_type_broad = c("questionnaire", "questionnaire", "test", "test",
+                                                     "questionnaire", "questionnaire", "questionnaire", "task", "other-rating",
+                                                     "other-rating", "questionnaire", "other-rating", "task",
+                                                     "questionnaire", "questionnaire"))
+records_wide <- records_wide %>% left_join(instrument_types, by = "InstrumentType")
+
+records_wide <- records_wide %>% 
+  rowwise() %>% 
+  mutate(classifications_n = length(ClassificationList)) %>% 
+  ungroup() %>% 
+  hoist(ClassificationList, classification_1 = list(1,1,1), .remove = FALSE) %>% 
+  hoist(ClassificationList, classification_2 = list(2,1,1), .remove = FALSE) %>% 
+  mutate(classification_1 = str_replace_all(classification_1, "[:space:]+", " "),
+         classification_2 = str_replace_all(classification_2, "[:space:]+", " "))
+
+
+records_wide <- records_wide %>% 
+  mutate(TestYear = as.numeric(TestYear))
+```
+
+
+Set binary fields for "commercial" and "open".
+```{r}
+records_wide <- records_wide %>% 
+  mutate(commercial_bin = case_when(
+    Commercial == "Yes" ~ 1L,
+    Commercial == "No" ~ 0L,
+    Commercial == "Unknown" ~ NA_integer_
+  ),
+  open_bin = case_when(
+    Permissions == "May use for Research/Teaching" ~ 1L,
+    Permissions == "Not Specified" ~  NA_integer_,
+    TRUE ~ 0L
+  ))
+```
+
+## Extract first acronym
+```{r}
+records_wide <- records_wide %>% 
+  hoist(AcronymList, first_acronym = list(1, 1), .remove = FALSE)
+
+records_wide <- records_wide %>% 
+  hoist(ConstructList, first_construct = list(1,1,1), .remove = FALSE)
+
+table(records_wide$first_construct) %>% sort() %>% tail(20)
+
+acronym_base <- str_replace(records_wide$first_acronym, "-R$", "")
+length(unique(acronym_base))
+
+acronym_base <- str_replace(acronym_base, "--.+$", "")
+length(unique(acronym_base))
+
+acronym_base <- str_replace(records_wide$first_acronym, "--.+$", "")
+length(unique(acronym_base))
+
+records_wide$acronym_base <- acronym_base
+
+```
+
+
+## Extract source citation DOI
+Extract the source citation DOI. I didn't actually run this yet, want to do it with scopus where I can get citations by year.
+```{r}
+records_wide <- records_wide %>% 
+  hoist(SourceCitationList, first_source_doi = list(1, "DOI", 1), .remove = FALSE)
+
+source_dois <- records_wide %>% select(first_source_doi) %>% drop_na() %>% distinct()
+
+# commented out for now
+# source_dois <- rcrossref::cr_citation_count(source_dois$first_source_doi)
+# records_wide <- records_wide %>% left_join(source_dois %>% rename(first_source_doi = doi, citation_count_crossref = count), by = "first_source_doi")
+
+
+library(rscopus)
+scopus_api_key <- "7804cba4fc15e860f8c5f549ac2215eb"
+find_cit_scopus <- function(x){
+
+}
+for (i in seq_along(nrow(source_dois))) {
+  find_cit_scopus(source_dois$first_source_doi[i])
+  if(i %% 10 == 0) print(i, source_dois$first_source_doi[i])
+}
+existing <- readr::read_tsv("../sober_rubric/raw_data/scopus_citation_counts.tsv")
+for (i in seq_along(setdiff(source_dois$first_source_doi, existing$doi))) {
+  x <- source_dois$first_source_doi[i]
+  if(! x %in% existing$doi) {
+    s <- generic_elsevier_api(api_key = scopus_api_key,
+                              doi = x,
+                              date = "1980-2023",
+                              type = "citations",
+                              search_type = "scopus")
+    citations <- s$content$`abstract-citations-response`$citeColumnTotalXML$citeCountHeader$columnTotal %>% as.data.frame()
+    if(length(citations)) {
+      colnames(citations) <- s$content$`abstract-citations-response`$citeColumnTotalXML$citeCountHeader$columnHeading %>% as.data.frame()
+      citations <- pivot_longer(citations, everything(), names_to = "year", values_to = "citation_count", values_transform = as.numeric, names_transform = as.numeric)
+      citations$doi <- x
+    } else {
+      citations <- tibble(doi = x)
+    }
+    existing <- bind_rows(existing, citations)
+    readr::write_tsv(existing, "../sober_rubric/raw_data/scopus_citation_counts.tsv")
+  }
+  if(i %% 10 == 0) { cat(paste(i, source_dois$first_source_doi[i])) }
+}
+
+
+records_wide <- records_wide %>% distinct() %>% left_join(existing %>% group_by(doi) %>% summarise(citation_count = sum(citation_count, na.rm = T)), by = c("first_source_doi" = "doi"))
+```
+
+
+## Extract Cronbach's Alpha
+```{r}
+records_wide <- records_wide %>% 
+  mutate(
+    no_reliability = Reliability == "No reliability indicated.",
+         first_reliability_match = as.numeric(str_match(Reliability, "(\\.\\d+)")[,2]),
+         all_reliabilities = lapply(str_extract_all(Reliability, "(\\.\\d+)"), as.numeric)
+)
+```
+
+## Prevalences of validity information
+```{r}
+table(records_wide$FactorAnalysis) %>% sort() %>% tail(2)
+records_wide %>% group_by(InstrumentType) %>% 
+  summarise(Reliability = mean(Reliability!="No reliability indicated."),
+            FactorAnalysis = mean(FactorAnalysis!="No factor analysis indicated." & FactorAnalysis != "This is a unidimensional measure."),
+            Validity = mean(Validity!="No validity indicated.")) %>%
+  arrange(Reliability+FactorAnalysis+Validity) %>% 
+  mutate(across(c(Reliability, FactorAnalysis, Validity), ~ round(100 * .)))
+
+records_wide %>% group_by(classification_1) %>% 
+  summarise(Reliability = mean(Reliability!="No reliability indicated."),
+            FactorAnalysis = mean(FactorAnalysis!="No factor analysis indicated." & FactorAnalysis != "This is a unidimensional measure."),
+            Validity = mean(Validity!="No validity indicated.")) %>% arrange(Reliability+FactorAnalysis+Validity) %>% View
+```
+
+## Sample size
+```{r}
+samplesizes <- records_wide$Reliability %>% str_match_all(regex("\\bn ?= ?(\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
+samplesizes %>% unlist() %>% table() %>% sort()
+samplesizes %>% unlist() %>% median()
+samplesizes %>% unlist() %>% length()
+records_wide$Reliability[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
+
+samplesizes <- records_wide$Validity %>% str_match_all(regex("\\bn ?= ?(\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
+samplesizes %>% unlist() %>% table()
+samplesizes %>% unlist() %>% median()
+records_wide$Validity[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
+
+samplesizes <- records_wide$FactorAnalysis %>% str_match_all(regex("\\bn ?= ?(\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
+samplesizes %>% unlist() %>% table()
+samplesizes %>% unlist() %>% median()
+records_wide$FactorAnalysis[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
+```
+
+
+## Number of factors
+```{r}
+records_wide$number_of_factors <- str_match_all(records_wide$FactorAnalysis, regex("(\\d+)(-| )factor", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
+records_wide$number_of_factors_subscales <- str_match_all(records_wide$FactorsAndSubscales, ";") %>% map_dbl(~ length(.)) + 1
+records_wide$number_of_factors_subscales[is.na(records_wide$FactorsAndSubscales)] <- NA_real_
+records_wide$FactorsAndSubscales %>% na.omit()
+unlist(records_wide$number_of_factors) %>% table() %>% sort()
+unlist(records_wide$number_of_factors_subscales) %>% table() %>% sort()
+ggplot(records_wide, aes(number_of_factors_subscales)) + geom_bar(aes(y= ..count..), stat = 'count') + scale_x_continuous(breaks = 1:20)
+cor(records_wide$number_of_factors_subscales, records_wide$number_of_factors %>% map_dbl(~ .[1]), use = 'p')
+```
+
+
+## Number of items
+```{r}
+records_wide$NumberOfTestItems <- str_replace_all(records_wide$NumberOfTestItems, "[[:space:]]+", " ")
+item_numbers <- records_wide$NumberOfTestItems %>% str_match_all(regex("(\\d+)( |-)(total |primary |main |final )?(item|question)s?( ?-?measure)?", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
+table(unlist(item_numbers))
+consists_of_numbers <- records_wide$NumberOfTestItems %>% str_match_all(regex("(comprises|consists of|contains|composed of|comprised of|) (\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,3]))
+
+just_numbers <- str_match(records_wide$NumberOfTestItems,pattern = "^(\\d+) ?$")[,2] %>% as.numeric()
+
+table(unlist(item_numbers))
+
+numbers <- records_wide$NumberOfTestItems %>% str_match_all("(\\d+)( |-)?") %>% map(~ as.numeric(.[,2]))
+
+words <- case_when(
+  str_detect(records_wide$NumberOfTestItems, regex("single(-| )(item|question)", ignore_case = TRUE)) ~ 1,
+  str_detect(records_wide$NumberOfTestItems, regex("one(-| )(item|question)", ignore_case = TRUE)) ~ 1,
+  str_detect(records_wide$NumberOfTestItems, regex("two(-| )(item|question)", ignore_case = TRUE)) ~ 2,
+  str_detect(records_wide$NumberOfTestItems, regex("three(-| )(item|question)", ignore_case = TRUE)) ~ 3,
+  str_detect(records_wide$NumberOfTestItems, regex("four(-| )(item|question)", ignore_case = TRUE)) ~ 4,
+  str_detect(records_wide$NumberOfTestItems, regex("five(-| )(item|question)", ignore_case = TRUE)) ~ 5,
+  str_detect(records_wide$NumberOfTestItems, regex("six(-| )(item|question)", ignore_case = TRUE)) ~ 6,
+  str_detect(records_wide$NumberOfTestItems, regex("seven(-| )(item|question)", ignore_case = TRUE)) ~ 7,
+  str_detect(records_wide$NumberOfTestItems, regex("eight(-| )(item|question)", ignore_case = TRUE)) ~ 8,
+  str_detect(records_wide$NumberOfTestItems, regex("nine(-| )(item|question)", ignore_case = TRUE)) ~ 9,
+  str_detect(records_wide$NumberOfTestItems, regex("ten(-| )(item|question)", ignore_case = TRUE)) ~ 10,
+  str_detect(records_wide$NumberOfTestItems, regex("eleven(-| )(item|question)", ignore_case = TRUE)) ~ 11,
+  str_detect(records_wide$NumberOfTestItems, regex("twelve(-| )(item|question)", ignore_case = TRUE)) ~ 12,
+  str_detect(records_wide$NumberOfTestItems, regex("thirteen(-| )(item|question)", ignore_case = TRUE)) ~ 13,
+  str_detect(records_wide$NumberOfTestItems, regex("fourteen(-| )(item|question)", ignore_case = TRUE)) ~ 14,
+  str_detect(records_wide$NumberOfTestItems, regex("fifteen(-| )(item|question)", ignore_case = TRUE)) ~ 15,
+  str_detect(records_wide$NumberOfTestItems, regex("sixteen(-| )(item|question)", ignore_case = TRUE)) ~ 16,
+  str_detect(records_wide$NumberOfTestItems, regex("seventeen(-| )(item|question)", ignore_case = TRUE)) ~ 17,
+  str_detect(records_wide$NumberOfTestItems, regex("eighteen(-| )(item|question)", ignore_case = TRUE)) ~ 18,
+  str_detect(records_wide$NumberOfTestItems, regex("nineteen(-| )(item|question)", ignore_case = TRUE)) ~ 19,
+  str_detect(records_wide$NumberOfTestItems, regex("twenty(-| )(item|question)", ignore_case = TRUE)) ~ 20,
+  str_detect(records_wide$NumberOfTestItems, regex("forty(-| )(item|question)", ignore_case = TRUE)) ~ 40,
+  str_detect(records_wide$NumberOfTestItems, regex("sex items", ignore_case = TRUE)) ~ 6,
+  TRUE ~ NA_real_)
+
+words_without_item <- case_when(
+  str_detect(records_wide$NumberOfTestItems, regex("single", ignore_case = TRUE)) ~ 1,
+  str_detect(records_wide$NumberOfTestItems, regex("one", ignore_case = TRUE)) ~ 1,
+  str_detect(records_wide$NumberOfTestItems, regex("two", ignore_case = TRUE)) ~ 2,
+  str_detect(records_wide$NumberOfTestItems, regex("three", ignore_case = TRUE)) ~ 3,
+  str_detect(records_wide$NumberOfTestItems, regex("four", ignore_case = TRUE)) ~ 4,
+  str_detect(records_wide$NumberOfTestItems, regex("five", ignore_case = TRUE)) ~ 5,
+  str_detect(records_wide$NumberOfTestItems, regex("six", ignore_case = TRUE)) ~ 6,
+  str_detect(records_wide$NumberOfTestItems, regex("seven", ignore_case = TRUE)) ~ 7,
+  str_detect(records_wide$NumberOfTestItems, regex("eight", ignore_case = TRUE)) ~ 8,
+  str_detect(records_wide$NumberOfTestItems, regex("nine", ignore_case = TRUE)) ~ 9,
+  str_detect(records_wide$NumberOfTestItems, regex("ten", ignore_case = TRUE)) ~ 10,
+  str_detect(records_wide$NumberOfTestItems, regex("eleven", ignore_case = TRUE)) ~ 11,
+  str_detect(records_wide$NumberOfTestItems, regex("twelve", ignore_case = TRUE)) ~ 12,
+  str_detect(records_wide$NumberOfTestItems, regex("thirteen", ignore_case = TRUE)) ~ 13,
+  str_detect(records_wide$NumberOfTestItems, regex("fourteen", ignore_case = TRUE)) ~ 14,
+  str_detect(records_wide$NumberOfTestItems, regex("fifteen", ignore_case = TRUE)) ~ 15,
+  str_detect(records_wide$NumberOfTestItems, regex("sixteen", ignore_case = TRUE)) ~ 16,
+  str_detect(records_wide$NumberOfTestItems, regex("seventeen", ignore_case = TRUE)) ~ 17,
+  str_detect(records_wide$NumberOfTestItems, regex("eighteen", ignore_case = TRUE)) ~ 18,
+  str_detect(records_wide$NumberOfTestItems, regex("nineteen", ignore_case = TRUE)) ~ 19,
+  str_detect(records_wide$NumberOfTestItems, regex("twenty", ignore_case = TRUE)) ~ 20,
+  str_detect(records_wide$NumberOfTestItems, regex("thirty", ignore_case = TRUE)) ~ 30,
+  str_detect(records_wide$NumberOfTestItems, regex("forty", ignore_case = TRUE)) ~ 40,
+  str_detect(records_wide$NumberOfTestItems, regex("fifty", ignore_case = TRUE)) ~ 50,
+  TRUE ~ NA_real_)
+
+table(words)
+table(words_without_item[which(words_without_item!=words)])
+
+records_wide$NumberOfTestItems[!is.na(words)]
+records_wide$NumberOfTestItems[which(item_numbers %>% map(~ .[1]) == 1192)]
+records_wide$NumberOfTestItems[which(item_numbers %>% map(~ length(.)) > 1)]
+
+table(records_wide$NumberOfTestItems) %>% sort() %>% tail(20)
+records_wide$NumberOfTestItems[which(!is.na(numbers %>% map(~ .[1])) & 
+                                       is.na(item_numbers %>% map(~ .[1])) & 
+                                       is.na(consists_of_numbers %>% map(~ .[1])) &
+                                       is.na(just_numbers %>% map(~ .[1])) &
+                                       is.na(words)
+                                     )]
+
+records_wide$NumberOfTestItems[which(!is.na(records_wide$NumberOfTestItems) & is.na(numbers %>% map(~ .[1])) & is.na(item_numbers %>% map(~ .[1])) & is.na(words))]
+unlist(numbers) %>% table() %>% qplot() +scale_x_sqrt(limits = c(1,30))
+
+good_guess <- coalesce(just_numbers, 
+                       item_numbers %>% map_dbl(~ .[1]), 
+                       words)
+best_guess <- coalesce(just_numbers, 
+                       item_numbers %>% map_dbl(~ .[1]), 
+                       words, 
+                       consists_of_numbers %>% map_dbl(~ .[1]),
+                       words_without_item,
+                       numbers %>% map_dbl(~ .[1]))
+xtabs(~ is.na(best_guess) + is.na(records_wide$NumberOfTestItems))
+xtabs(~ is.na(good_guess) + is.na(records_wide$NumberOfTestItems))
+records_wide$number_of_test_items <- good_guess
+records_wide$number_of_test_items_best_guess <- best_guess
+records_wide$number_of_test_items_potential_subscales <- coalesce(item_numbers %>% map_dbl(~ length(.)), consists_of_numbers %>% map_dbl(~ length(.)), numbers %>% map_dbl(~ length(.)), 1) 
+records_wide$NumberOfTestItems[which(!is.na(records_wide$NumberOfTestItems) & is.na(best_guess))]
+qplot(records_wide$number_of_test_items,binwidth = 1) + xlim(0,200) + theme_bw()
+table(records_wide$number_of_test_items) %>% sort()
+
+cor(records_wide$first_reliability_match, records_wide$number_of_test_items, use = 'p')
+ggplot(records_wide %>% filter(number_of_test_items <= 40, number_of_test_items > 0), aes(factor(number_of_test_items), first_reliability_match)) + geom_pointrange(fun.data = "mean_se", stat = "summary") + theme_bw()
+
+ggplot(records_wide %>% filter(number_of_test_items <= 40, number_of_test_items > 0), aes(factor(number_of_test_items), if_else(first_reliability_match == .70, 1, 0))) + geom_pointrange(fun.data = "mean_se", stat = "summary") + theme_bw()
+```
+
+## Transform to PsycInfo ASCII names
+```{r}
+records_wide$NameOC <- records_wide$Name
+records_wide$Name <- records_wide$NameOC
+records_wide$Name <- str_to_lower(records_wide$Name)
+
+records_wide <- records_wide %>% mutate(
+  # psycinfo doesn't differentiate dashes
+  # Name = Name_orig,
+  # Name_orig = Name,
+  name_psycinfo = str_replace_all(Name, "(–|—|─|－|－|─|-|‑|‑|-|–|—)", "-"),
+  name_psycinfo = str_replace_all(name_psycinfo, "(’)", "'"),
+  name_psycinfo = str_replace_all(name_psycinfo, "(\")", "'"),
+  name_psycinfo = str_replace_all(name_psycinfo, "(“|”)", "'"),
+  name_psycinfo = str_replace_all(name_psycinfo, "(  +)", " "),
+  name_psycinfo = str_replace_all(name_psycinfo, "( )", " "),
+  name_psycinfo = str_replace_all(name_psycinfo, "(\n)", " "),
+  name_psycinfo = str_replace_all(name_psycinfo, "ҫ", "c"),
+  name_psycinfo = str_replace_all(name_psycinfo, "™", "(TM)"),
+  name_psycinfo = str_replace_all(name_psycinfo, "©", "(C)"),
+  name_psycinfo = str_replace_all(name_psycinfo, "®", "(R)"),
+  name_psycinfo = coalesce(stringi::stri_trans_general(name_psycinfo, "latin-ascii"), name_psycinfo),
+  name_psycinfo = str_replace_all(name_psycinfo, "\\(TM\\)", "™"),
+  name_psycinfo = str_replace_all(name_psycinfo, "\\(C\\)", "©"),
+  name_psycinfo = str_replace_all(name_psycinfo, "\\(R\\)", "®"),
+  # name_psycinfo = coalesce(iconv(name_psycinfo, to='ASCII//TRANSLIT//IGNORE'), name_psycinfo),
+  name_psycinfo = str_replace_all(name_psycinfo, "[:space:]+", " ")
+)
+
+psycinfo_chars <- c(" ", "-", ",", ";", ":", "!", "?", ".", "'", "(", ")", "[", 
+"]", "/", "&", "©", "®", "+", "<", ">", "−", "0", "1", "2", 
+"3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", 
+"g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", 
+"t", "™", "u", "v", "w", "x", "y", "z")
+psycinfo_chars_escaped <- c(" ", "\\-", ",", ";", ":", "!", "?", ".", "'", "(", ")", "\\[", 
+"\\]", "/", "&", "©", "®", "+", "<", ">", "−", "0", "1", "2", 
+"3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", 
+"g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", 
+"t", "™", "u", "v", "w", "x", "y", "z")
+
+records_wide %>% select(DOI, NameOC, Name, name_psycinfo) %>% 
+  saveRDS("../sober_rubric/raw_data/psycinfo_psyctests_names.rds")
+records_wide %>% group_by(name_psycinfo) %>%
+  filter(n_distinct(Name) > 1) %>%
+  arrange(name_psycinfo) %>%
+  select(name_psycinfo, Name) %>% 
+  nrow()
+
+
+# records_wide %>% filter(Name != name_psycinfo, str_detect(name_psycinfo, regex(paste0("^[", paste0(psycinfo_chars_escaped, collapse = ""),"]+$"), ignore_case = T), negate = T)) %>% select(DOI, Name, name_psycinfo) %>% 
+  # mutate(notascii = str_extract_all(name_psycinfo, regex(paste0("^[", paste0(psycinfo_chars_escaped, collapse = ""),"]+$"), ignore_case = T))) %>% 
+  # View
+
+#merged_ebsco %>% group_by(DOI) %>% filter(n()>1) %>% ungroup() %>% select(DOI) %>% distinct() %>% 
+#  inner_join(
+#    records_wide %>% filter(name_psycinfo != Name) %>% select(DOI, NameOC, name_psycinfo, Name)) %>% View
+```
+
+## Simplify lexically identical
+```{r}
+
+library(fuzzyjoin)
+records_wide %>% distinct(Name) %>% pull(Name) %>% str_match_all("([^a-zA-Z0-9 ])") %>% unlist() %>% table() %>% sort()
+records_wide <- records_wide %>% mutate(
+  # psycinfo doesn't differentiate dashes
+  # Name = Name_orig,
+  # Name_orig = Name,
+  Name = str_replace_all(Name, "(–|—|─|－|－|─|-|‑|‑|-|–|—)", "-"),
+  Name = str_replace_all(Name, "(’)", "'"),
+  Name = str_replace_all(Name, "(\")", "'"),
+  Name = str_replace_all(Name, "(“|”)", "'"),
+  Name = str_replace_all(Name, "(  +)", " "),
+  Name = str_replace_all(Name, "ҫ", "c"),
+  Name = str_replace_all(Name, "( )", " "),
+  Name = str_replace_all(Name, "(\n)", " "),
+  Name = str_replace_all(Name, "(™|©|®)", ""),
+  Name = coalesce(stringi::stri_trans_general(Name, "latin-ascii"), Name),
+  Name = str_replace_all(Name, "[:space:]+", " ")
+)
+library(tidylog)
+crosswalk <- uk2us::ukus_crosswalk
+crosswalk <- setNames(crosswalk$us, crosswalk$uk)
+str_replace_all("a labour baulk", crosswalk)
+records_wide <- records_wide %>% mutate(
+  Name = str_replace_all(Name, crosswalk)
+)
+
+num_spelled <- tibble(
+  num = as.character(0:100),
+  spelled = c("zero", "one", "two", "three", "four", "five", "six", "seven", 
+              "eight", "nine", "ten", "eleven", "twelve", "thirteen", 
+              "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", 
+              "nineteen", "twenty", "twenty one", "twenty two", "twenty three",
+              "twenty four", "twenty five", "twenty six", "twenty seven",
+              "twenty eight", "twenty nine", "thirty", "thirty one", "thirty two",
+              "thirty three", "thirty four", "thirty five", "thirty six",
+              "thirty seven", "thirty eight", "thirty nine", "forty", "forty one",
+              "forty two", "forty three", "forty four", "forty five", "forty six",
+              "forty seven", "forty eight", "forty nine", "fifty", "fifty one",
+              "fifty two", "fifty three", "fifty four", "fifty five", "fifty six",
+              "fifty seven", "fifty eight", "fifty nine", "sixty", "sixty one",
+              "sixty two", "sixty three", "sixty four", "sixty five", "sixty six",
+              "sixty seven", "sixty eight", "sixty nine", "seventy", "seventy one",
+              "seventy two", "seventy three", "seventy four", "seventy five",
+              "seventy six", "seventy seven", "seventy eight", "seventy nine",
+              "eighty", "eighty one", "eighty two", "eighty three", "eighty four",
+              "eighty five", "eighty six", "eighty seven", "eighty eight", "eighty nine",
+              "ninety", "ninety one", "ninety two", "ninety three", "ninety four",
+              "ninety five", "ninety six", "ninety seven", "ninety eight", "ninety nine", "one hundred")
+) 
+roman_num_spelled <- tibble(num = c("\\bii\\b", "\\biii\\b", " \\biv\\b", "\\bv\\b"), 
+                            spelled = c("two", "three", "four", "five"))
+num_spelled <- bind_rows(num_spelled, roman_num_spelled)%>% arrange(desc(num))
+replace_nums <- num_spelled$spelled
+names(replace_nums) <- num_spelled$num
+
+records_wide <- records_wide %>% mutate(
+  # shouldn't treat 12 as being close to 1
+  Name_comparable = str_replace_all(Name, "(-|,)", " "),
+  Name_comparable = str_replace_all(Name_comparable, replace_nums),
+)
+```
+
+
+## Get original test for revisions/translations
+
+```{r}
+get_original <- function(your_list) {
+  if(is_empty(your_list)) {
+    NA_character_
+  } else {
+    versions <- tibble(OtherVersion = your_list)
+    versions <- versions %>%
+      unnest_wider(OtherVersion) %>%
+      mutate(
+        OtherVersionTestName = map_chr(OtherVersionTestName, ~.x[[1]]),
+        OtherVersionType = map_chr(OtherVersionTypeList, ~.x$OtherVersionType[[1]])
+      ) %>%
+      select(OtherVersionTestName, OtherVersionType)
+    
+    versions <- versions %>% 
+      filter(OtherVersionType == "Original")
+    
+    if(nrow(versions) == 0) { 
+      NA_character_ 
+    } else {
+      versions %>% pull(OtherVersionTestName)
+      } 
+  }
+}
+# debug(get_original)
+
+
+records_wide <- records_wide %>% 
+  hoist(OtherVersionList, original_name = list(), .transform = 
+          get_original)
+
+get_original_doi <- function(your_list) {
+  if(is_empty(your_list)) {
+    NA_character_
+  } else {
+    versions <- tibble(OtherVersion = your_list) %>% 
+      rowwise() %>% 
+      mutate(OtherVersionID = attr(OtherVersion, "OtherVersionTestID")) %>% 
+      ungroup() %>% 
+      unnest_wider(OtherVersion) %>%
+      mutate(
+        OtherVersionTestName = map_chr(OtherVersionTestName, ~.x[[1]]),
+        OtherVersionType = map_chr(OtherVersionTypeList, ~.x$OtherVersionType[[1]])
+      ) %>%
+      select(OtherVersionID, OtherVersionTestName, OtherVersionType) %>% 
+      mutate(OtherVersionDOI = str_replace(OtherVersionID, "9999-", "10.1037/t"))
+    
+    versions <- versions %>% 
+      filter(OtherVersionType == "Original")
+    
+    if(nrow(versions) == 0) { 
+      NA_character_ 
+    } else {
+      versions %>% pull(OtherVersionDOI)
+      } 
+  }
+}
+# debug(get_original)
+
+
+records_wide <- records_wide %>% 
+  hoist(OtherVersionList, original_DOI = list(), .transform = 
+          get_original_doi)
+
+
+records_wide <- records_wide %>% 
+  mutate(original_DOI = as.character(original_DOI)) %>% 
+  # hoist(original_DOI, original_DOI = list(1)) %>% 
+  mutate(original_test_DOI = coalesce(original_DOI, DOI))
+
+records_wide <- records_wide %>% 
+  hoist(TestTypeList, test_type = list(1,1,1), .remove = FALSE)
+xtabs(~ is.na(original_DOI) + test_type, records_wide)
+
+n_distinct(records_wide$original_test_DOI)
+```
+
+
+## Get basis name without version/abbreviation/language
+```{r}
+source("0_function_name_base.R")
+records_wide$Name_base <- get_name_base(records_wide$Name)
+# reduction
+n_distinct(records_wide$Name) - n_distinct(records_wide$Name_base)
+
+records_wide %>% filter(Name != Name_base) %>% nrow()
+records_wide %>% group_by(test_type) %>% summarise(mismatch = sum(Name != Name_base)/n(), match = sum(Name == Name_base)/n())
+```
+
+
+```{r}
+records_wide %>% filter(test_type != "Original", is.na(original_DOI)) %>% select(DOI, Name_base, Name) %>% 
+  left_join(records_wide %>% filter(test_type == "Original") %>% select(Name_base = Name, original_DOI_by_name = DOI), by = "Name_base") %>% View
+
+matches_by_doi <- records_wide %>% 
+  select(original_DOI, Name, Name_base) %>% 
+  inner_join(records_wide %>% 
+               select(original_DOI = DOI, original_name = Name, original_Name_base = Name_base))
+
+nrow(matches_by_doi)
+matches_by_doi %>% filter(original_name == Name_base)
+matches_by_doi %>% filter(original_name != Name_base) %>% View()
+matches_by_doi %>% filter(original_name != Name_base) %>% filter(str_detect(Name_base, " for "), str_match(Name_base, "^(.+) for .+$")[,2] == original_name) %>% pull(Name_base) %>% str_extract(" for .+$") %>% table() %>% sort() %>% names() %>% dput() 
+
+unmatched_by_name <- records_wide %>% filter(is.na(original_DOI), test_type != "Original" | Name != Name_base) %>% select(test_type, DOI, Name = Name_base, NameOC_1 = NameOC) %>% anti_join(records_wide %>% filter(test_type == "Original") %>% select(Name)) 
+nrow(unmatched_by_name)
+
+matches_by_name <- records_wide %>% 
+  filter(test_type != "Original" | Name != Name_base) %>% 
+  select(test_type, DOI, Name = Name_base, NameOC_1 = NameOC, original_DOI) %>% 
+  inner_join(records_wide %>% filter(test_type == "Original") %>% 
+               select(original_DOI_by_name = DOI, Name, NameOC) %>% group_by(Name) %>% mutate(same_name_n = n()) %>% ungroup(), by = "Name") %>% 
+  left_join(records_wide %>% filter(test_type == "Original") %>% 
+               select(original_DOI = DOI, Name, NameOC_by_doi = NameOC), by = "original_DOI")
+
+matches_by_name %>% group_by(original_DOI == original_DOI_by_name) %>% summarise(n())
+# mismatches are mostly brE/amE equivalents and confusions between scale/measure/instrument and plural/singular
+# matches_by_name %>% filter(original_DOI != original_DOI_by_name, NameOC != NameOC_by_doi) %>% 
+#   select(NameOC_1, NameOC, NameOC_by_doi, same_name_n) %>% 
+#   View()
+
+
+sum(!is.na(records_wide$original_DOI))
+records_wide <- records_wide %>% 
+  left_join(records_wide %>% filter(test_type == "Original") %>% 
+               select(original_DOI_by_name = DOI, Name) %>% group_by(Name) %>% filter(n() == 1) %>% ungroup(), by = c("Name_base" = "Name")) %>% 
+  mutate(original_DOI_combined = coalesce(original_DOI, 
+                                          if_else(test_type != "Original" &
+                                                    Name != Name_base, original_DOI_by_name, NA_character_)))
+sum(!is.na(records_wide$original_DOI_combined)) - sum(!is.na(records_wide$original_DOI))
+```
+
+
+## Index terms
+```{r}
+index_terms <- records_wide %>% select(IndexTermList) %>% 
+  unlist()
+table(index_terms) %>% sort() %>% tail(100)
+```
+
+
+## Subdisciplines
+```{r}
+
+classifications <- readr::read_tsv(col_names = T,
+"code	classification
+5000	Addiction, Gambling, and Substance Abuse/Use
+5100	Anxiety and Depression
+5200	Aptitude and Achievement
+5300	Attitudes, Interests, Values, and Expectancies
+5400	Cognitive Processes, Memory, and Decision Making
+5500	Communication, Language, and Verbal Processing
+5600	Consumer Behavior, Marketing, and Advertising
+5700	Culture, Racial, and Ethnic Identity
+5800	Development and Aging
+5900	Education, Teaching, and Student Characteristics
+6000	Emotional States, Emotional Responses, and Motivation
+6100	Family Relationships and Parenting
+6200	Functional Status and Adaptive Behavior
+6300	Human Factors and Environmental Engineering
+6400	Human-Computer Interaction
+6500	Intelligence
+6600	Legal and Forensic Evaluation
+6700	Mental Health/Illness Related Assessment
+6800	Military Personnel, Adjustment, and Training
+6900	Neuropsychological Assessment
+7000	Organizational, Occupational, and Career Development
+7100	Perceptual, Motor, and Sensory Processing
+7200	Personality
+7300	Physical Health/Illness Related Assessment
+7400	Religious and Political Beliefs
+7500	Sex, Gender Roles, and Sexual Behavior
+7600	Social, Group, and Interpersonal Relationships
+7700	Sports, Recreation, and Leisure
+7800	Trauma, Stress, and Coping
+7900	Treatment, Rehabilitation, and Therapeutic Processes
+8000	General Assessment Tools")
+
+higher_class <- readr::read_tsv("classification	subdiscipline
+Addiction, Gambling, and Substance Abuse/Use	Health and Clinical Psychology
+Anxiety and Depression	Health and Clinical Psychology
+Aptitude and Achievement	Educational and Developmental Psychology
+Attitudes, Interests, Values, and Expectancies	Personality and Social Psychology
+Cognitive Processes, Memory, and Decision Making	Cognitive Psychology
+Communication, Language, and Verbal Processing	Cognitive Psychology
+Consumer Behavior, Marketing, and Advertising	Industrial/Organizational Psychology
+Culture, Racial, and Ethnic Identity	Personality and Social Psychology
+Development and Aging	Educational and Developmental Psychology
+Education, Teaching, and Student Characteristics	Educational and Developmental Psychology
+Emotional States, Emotional Responses, and Motivation	Personality and Social Psychology
+Family Relationships and Parenting	Personality and Social Psychology
+Functional Status and Adaptive Behavior	Health and Clinical Psychology
+Human Factors and Environmental Engineering	Industrial/Organizational Psychology
+Human-Computer Interaction	Industrial/Organizational Psychology
+Intelligence	Educational and Developmental Psychology
+Legal and Forensic Evaluation	Health and Clinical Psychology
+Mental Health/Illness Related Assessment	Health and Clinical Psychology
+Military Personnel, Adjustment, and Training	Health and Clinical Psychology
+Neuropsychological Assessment	Health and Clinical Psychology
+Organizational, Occupational, and Career Development	Industrial/Organizational Psychology
+Perceptual, Motor, and Sensory Processing	Cognitive Psychology
+Personality	Personality and Social Psychology
+Physical Health/Illness Related Assessment	Health and Clinical Psychology
+Religious and Political Beliefs	Personality and Social Psychology
+Sex, Gender Roles, and Sexual Behavior	Personality and Social Psychology
+Social, Group, and Interpersonal Relationships	Personality and Social Psychology
+Sports, Recreation, and Leisure	Personality and Social Psychology
+Trauma, Stress, and Coping	Health and Clinical Psychology
+Treatment, Rehabilitation, and Therapeutic Processes	Health and Clinical Psychology
+General Assessment Tools	Health and Clinical Psychology")
+
+classifications <- classifications %>% 
+  left_join(higher_class)
+
+
+records_wide <- records_wide %>% 
+  left_join(higher_class %>% rename(subdiscipline_1 = subdiscipline), by = c("classification_1" = "classification")) %>% 
+  left_join(higher_class %>% rename(subdiscipline_2 = subdiscipline), by = c("classification_2" = "classification"))
+
+table(records_wide$subdiscipline_1 == records_wide$subdiscipline_2)
+```
+
+
+## Save
+```{r}
+saveRDS(records_wide, "../sober_rubric/raw_data/preprocessed_records.rds")
+```
