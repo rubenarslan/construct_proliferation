@@ -2,7 +2,11 @@
 title: "Construct proliferation by subdiscipline"
 author: "Ruben Arslan"
 date: "2023-03-31"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: "hide"
 editor_options: 
   chunk_output_type: inline
 ---
@@ -13,11 +17,12 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F)
 
 library(groundhog)
-groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot"), date = "2024-02-24")
+groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "RColorBrewer", "plotly", "gglorenz", "rio"), date = "2024-02-24")
 theme_set(theme_bw())
 
 records_wide <- readRDS("../sober_rubric/raw_data/preprocessed_records.rds")
-
+colors <- RColorBrewer::brewer.pal(3, name = "Dark2")
+names(colors) <- c("all", "novel", "constructs")
 
 index_terms <- records_wide %>% select(DOI, IndexTermList) %>% 
     unnest_longer(IndexTermList, indices_include = T) %>%
@@ -379,10 +384,104 @@ records_wide %>%
   summarise(constructs = n()) %>% 
   # mutate(tests = cumsum(tests)) %>% 
   ggplot(aes(TestYear, constructs)) + 
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
   geom_line() +
   xlim(1990, 2022) +
   xlab("Publication date in PsycTests")
 ```
+
+```{r}
+count_all <- records_wide %>% 
+  group_by(TestYear) %>% 
+  summarise(tests = n()) %>% 
+  arrange(TestYear)
+
+count_orig <- records_wide %>% 
+  filter(test_type == "Original") %>% 
+  group_by(TestYear) %>% 
+  summarise(tests = n()) %>% 
+  arrange(TestYear)
+
+count_base <- records_wide %>% 
+  arrange(TestYear) %>% 
+  distinct(Name_base, .keep_all = T) %>% 
+  group_by(TestYear) %>% 
+  summarise(tests = n_distinct(DOI))
+
+count_construct <- records_wide %>% 
+  arrange(TestYear) %>% 
+  distinct(first_construct, .keep_all = T) %>% 
+  group_by(TestYear) %>% 
+  summarise(tests = n_distinct(DOI)) %>% 
+  arrange(TestYear)
+
+counts <- bind_rows(
+  "novel constructs" = count_construct,
+  "novel measures" = count_orig,
+  "with translations\n and revisions" = count_all,
+  .id = "origin"
+  ) %>% 
+  rename(Year = TestYear) %>% 
+  filter(Year < 2023)
+
+
+count_plot <- ggplot(counts, aes(Year, tests, color = origin)) + 
+  geom_line() +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  scale_y_continuous("Number of measures published") +
+  scale_x_continuous("Publication year in APA PsycTests",
+                     limits = c(1993, 2028), 
+                     breaks = seq(1993,2023, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "", 2023)) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggrepel::geom_text_repel(
+  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == 2023),
+  #   size = 4, hjust = 1,
+  #   ) + 
+  geom_text_repel(aes(label = coalesce("  ", origin)), # This will force the correct position of the link's right end.
+                  data = counts %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  segment.curvature = -0.1,
+                  segment.square = TRUE,
+                  segment.color = 'grey',
+                  box.padding = 0.1,
+                  point.padding = 0.6,
+                  nudge_x = 1.2,
+                  nudge_y = -15,
+                  force = 0.5,
+                  hjust = 0,
+                  size = 3.3,
+                  direction="y",
+                  na.rm = F
+  ) +
+  geom_text_repel(data = counts %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ", origin)),
+                  segment.alpha = 0, ## This will 'hide' the link
+                  segment.curvature = -0.1,
+                  segment.square = TRUE,
+                  lineheight = .9,
+                  # segment.color = 'grey',
+                  box.padding = 0.1,
+                  point.padding = 0.6,
+                  nudge_x = 1.2,
+                  nudge_y = -15,
+                  force = 1,
+                  hjust = 0,
+                  direction="y",
+                  size = 3.3,
+                  na.rm = F)+
+  theme_minimal(base_size = 14) +
+   theme(panel.grid.major.x = element_line(linetype = "dashed", size = 0.3),
+        panel.grid.major.y = element_line(linetype = "dashed", size = 0.3),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")
+count_plot
+ggsave("figures/fig_counts.pdf", width = 8, height = 4)
+ggsave("figures/fig_counts.png", width = 8, height = 4)
+```
+
 
 
 ### Cumulative number of tests
@@ -427,7 +526,7 @@ cumsums <- bind_rows(
 
 cumsum_plot <- ggplot(cumsums, aes(Year, tests, color = origin)) + 
   geom_line() +
-  scale_y_log10("Cumulative number of measures") +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
   scale_y_continuous("Cumulative number of measures") +
   scale_x_continuous("Publication year in APA PsycTests",
                      limits = c(1993, 2027), 
@@ -469,17 +568,20 @@ cumsum_plot <- ggplot(cumsums, aes(Year, tests, color = origin)) +
                   direction="y",
                   size = 3.3,
                   na.rm = TRUE)+
-  theme_minimal(base_size = 14) +
+   theme_minimal(base_size = 14) +
    theme(panel.grid.major.x = element_line(linetype = "dashed", size = 0.3),
         panel.grid.major.y = element_line(linetype = "dashed", size = 0.3),
         panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
-        legend.position = "none") 
+        legend.position = "none")  +
+    guides(
+    x = guide_axis(cap = "both"), # Cap both ends
+  )
 cumsum_plot
-ggsave("figures_proliferation/fig_cumsums.pdf", width = 8, height = 4)
-ggsave("figures_proliferation/fig_cumsums.png", width = 8, height = 4)
+ggsave("figures/fig_cumsums.pdf", width = 8, height = 4)
+ggsave("figures/fig_cumsums.png", width = 8, height = 4)
 ```
 
 ### By subdiscipline
@@ -577,8 +679,8 @@ cumsum_plot <- ggplot(cumsums, aes(Year, tests, color = origin)) +
         legend.position = "none") 
 cumsum_plot
 
-ggsave("figures_proliferation/fig_cumsums_subdiscipline.pdf", width = 15, height = 6)
-ggsave("figures_proliferation/fig_cumsums.png", width = 8, height = 4)
+ggsave("figures/fig_cumsums_subdiscipline.pdf", width = 15, height = 6)
+ggsave("figures/fig_cumsums.png", width = 8, height = 4)
 ```
 
 
@@ -645,8 +747,8 @@ freq_plot <- ggplot(test_frequency, aes(n, count)) +
         plot.title = element_text(face="bold"),
         legend.position = "none")
 freq_plot
-ggsave("figures_proliferation/fig_frequency_across.pdf", width = 5, height = 4)
-ggsave("figures_proliferation/fig_frequency_across.png", width = 5, height = 4)
+ggsave("figures/fig_frequency_across.pdf", width = 6, height = 4)
+ggsave("figures/fig_frequency_across.png", width = 6, height = 4)
 
 test_frequency <- test_frequency %>% 
   filter(n >= 1) %>% 
@@ -687,13 +789,10 @@ freq_plot <- ggplot(test_frequency, aes(n, count)) +
         plot.title = element_text(face="bold"),
         legend.position = "none")
 freq_plot
-ggsave("figures_proliferation/fig_frequency_across_no0.pdf", width = 5, height = 4)
+ggsave("figures/fig_frequency_across_no0.pdf", width = 6, height = 4)
 ```
 
 ```{r}
-colors <- RColorBrewer::brewer.pal(3, name = "Dark2")
-names(colors) <- c("all", "novel", "constructs")
-
 test_frequency <- merged_ebsco %>% 
   mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
   drop_na(Test) %>% 
@@ -753,8 +852,8 @@ freq_plot <- ggplot(test_frequency, aes(n, count)) +
         plot.title = element_text(face="bold"),
         legend.position = "none")
 freq_plot
-ggsave("figures_proliferation/fig_frequency.pdf", width = 8.5, height = 4)
-ggsave("figures_proliferation/fig_frequency.png", width = 5, height = 4)
+ggsave("figures/fig_frequency.pdf", width = 6, height = 4)
+ggsave("figures/fig_frequency.png", width = 6, height = 4)
 
 test_frequency <- test_frequency %>% 
   filter(n >= 1) %>% 
@@ -797,13 +896,12 @@ freq_plot <- ggplot(test_frequency, aes(n, count)) +
         plot.title = element_text(face="bold"),
         legend.position = "none")
 freq_plot
-ggsave("figures_proliferation/fig_frequency_no0.pdf", width = 8.5, height = 4)
+ggsave("figures/fig_frequency_no0.pdf", width = 8.5, height = 4)
 ```
 
 
 ## Lorenz curves
 ```{r}
-library(gglorenz)
 test_frequency <- merged_ebsco %>% 
   mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
   drop_na(Test) %>% 
@@ -829,8 +927,8 @@ ggplot(test_frequency, aes(n)) +
   coord_fixed() +
   geom_abline(linetype = "dashed") +
       theme_minimal() +
-    hrbrthemes::scale_x_percent("Cumulative percentage of tests") +
-    hrbrthemes::scale_y_percent("Cumulative percentage of test market share") #+
+    hrbrthemes::scale_x_percent("Cumulative percentage of measures") +
+    hrbrthemes::scale_y_percent("Cumulative percentage of measure market share") #+
 #    hrbrthemes::theme_ipsum_rc()
 
 ggplot(test_frequency, aes(n, color = subdiscipline_1)) +
@@ -838,8 +936,8 @@ ggplot(test_frequency, aes(n, color = subdiscipline_1)) +
   coord_fixed() +
   geom_abline(linetype = "dashed") +
       theme_minimal() +
-    hrbrthemes::scale_x_percent("Cumulative percentage of tests") +
-    hrbrthemes::scale_y_percent("Cumulative percentage of test market share")
+    hrbrthemes::scale_x_percent("Cumulative percentage of measures") +
+    hrbrthemes::scale_y_percent("Cumulative percentage of measure market share")
 #    hrbrthemes::theme_ipsum_rc() 
 
 
@@ -937,7 +1035,7 @@ entropy_by_year <- bind_rows(# "all tests" = all_entropy_by_year,
 plot_entropy <- entropy_by_year %>% 
   ggplot(., aes(Year, norm_entropy, color = version)) +
   geom_line(size = 0.7) +
-  scale_y_continuous("Normalised Shannon Entropy", limits = c(0, 1), labels = scales::percent) +
+  scale_y_continuous("Normalized Shannon Entropy", limits = c(0, 1), labels = scales::percent) +
   # geom_line(aes(y = log(n)), color = 'red') +
   scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2027), 
                      breaks = seq(1993,2023, by = 1),
@@ -993,8 +1091,8 @@ plot_entropy <- entropy_by_year %>%
         plot.title = element_text(face="bold"),
         legend.position = "none")
 plot_entropy
-ggsave("figures_proliferation/fig_entropy.pdf", width = 8, height = 4)
-ggsave("figures_proliferation/fig_entropy.png", width = 8, height = 4)
+ggsave("figures/fig_entropy.pdf", width = 8, height = 4)
+ggsave("figures/fig_entropy.png", width = 8, height = 4)
 ```
 #### by classification
 ```{r}
@@ -1074,7 +1172,7 @@ entropy_by_year %>%
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
         legend.position = "none") +
-  ggtitle("Entropy in test use over time")
+  ggtitle("Entropy in measure use over time")
 ```
 
 #### by subdiscipline
@@ -1155,8 +1253,8 @@ entropy_by_year %>%
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
         legend.position = "none") +
-  ggtitle("Entropy in test use over time")
-ggsave("figures_proliferation/fig_entropy_subdiscipline.pdf", width = 8, height = 4)
+  ggtitle("Entropy in measure use over time")
+ggsave("figures/fig_entropy_subdiscipline.pdf", width = 8, height = 4)
 ```
 
 ```{r}
@@ -1261,7 +1359,7 @@ entropy_by_year <- merged_ebsco %>%
 entropy_by_year %>% 
   ggplot(., aes(Year, norm_entropy, color = instrument_type_broad)) +
   geom_line(size = 0.7) +
-  scale_y_continuous("Standardised entropy", limits = c(0, 1)) +
+  scale_y_continuous("Normalized Shannon entropy", limits = c(0, 1)) +
   # geom_line(aes(y = log(n)), color = 'red') +
   scale_x_continuous(limits = c(2003, 2027), breaks = c(1993, 1998, 2003, 2008, 2013, 2018, 2023)) +
   ggtitle(str_c(n_distinct(entropy_by_year$Test), " measures tracked in PsycInfo")) +
@@ -1450,7 +1548,6 @@ depression_construct_names <- c("depression", "depression symptoms", "childhood 
 "major depression symptoms", "depression in stroke patients", "major depression screening", "depression impairment", "depression remission", "symptoms of depression", "depression in adolescent girls", 
 "depression in women", "child depression", "childhood major depression",  "major depression severity and clinical change", "depression symptom severity", "chronic depression", "persistent depression", "remission from depression", "late-life depression")
 depression <- merged_ebsco %>% filter(first_construct %in% depression_construct_names)
-library(plotly)
 
 tests <- depression %>% group_by(Name) %>% 
   summarise(n = sum(usage_count, na.rm = T)) %>% 
@@ -1686,7 +1783,7 @@ entropy_by_year <- bind_rows(# "all tests" = all_entropy_by_year,
 plot_entropy <- entropy_by_year %>% 
   ggplot(., aes(Year, norm_entropy, color = version)) +
   geom_line(size = 0.7) +
-  scale_y_continuous("Normalised Shannon Entropy", limits = c(0, 1), labels = scales::percent) +
+  scale_y_continuous("Normalized Shannon Entropy", limits = c(0, 1), labels = scales::percent) +
   # geom_line(aes(y = log(n)), color = 'red') +
   scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2027), 
                      breaks = seq(1993,2023, by = 1),
