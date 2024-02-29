@@ -1,0 +1,264 @@
+---
+title: "Construct proliferation"
+author: "Ruben Arslan"
+date: "2023-03-31"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: "hide"
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F)
+
+library(groundhog)
+groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "readr",
+                    "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes"), 
+                  date = "2024-02-24")
+theme_set(theme_minimal(base_size = 14))
+```
+
+```{r}
+psyctests_info <- readRDS("../sober_rubric/raw_data/psyctests_info.rds")
+```
+
+In the following, you see treemaps. In these plots, the area per test is proportional to its usage frequency. In the plots, tests which have been rarely used according to APA PsycInfo are grouped, mainly so that the individually small tiles are still visible despite their low frequency. 
+
+By comparing across the subdisciplines, we can see what higher and lower entropy fields look like visually. High entropy is seen as great fragmentation, i.e. there are many tiles of similar size and the "used 1-5 times" and "used 6-20 times" tiles are prominent. Lower fragmentation is apparent when some large tiles reflecting individual measures, such as the Beck Depression Inventory, dominate a field.
+
+```{r}
+tests <- psyctests_info %>% 
+  group_by(DOI, Name) %>% 
+  summarise(n = sum(usage_count, na.rm = T),
+            parent = case_when(
+                    n > 50 ~ "",
+                    n > 20 ~ "used 21-50 times",
+                    n > 5 ~ "used 6-20 times",
+                    TRUE ~ "used 1-5 times"))
+entropy = entropy(tests$n)
+norm_entropy = entropy / log(length(tests$n))
+
+tests <- bind_rows(tests, 
+                   tests %>% filter(parent != "") %>% 
+                     ungroup() %>% 
+                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+```
+
+
+## Overall
+### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+```{r, out.width='100%'}
+fig <- plot_ly(
+  type='treemap',
+  labels = tests$Name,
+  parents = tests$parent,
+  values= tests$n,
+  text = tests$DOI,
+  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
+  hoverinfo="label+value+text",
+  textinfo="label+value")
+
+fig %>% layout(
+  autosize = TRUE,
+  margin = list(l = 0, t = 0, r = 0 , b = 0)
+)
+```
+
+
+```{r}
+tests <- psyctests_info %>% 
+  filter(subdiscipline_1 == "Personality and Social Psychology") %>% 
+  group_by(DOI, Name) %>% 
+  summarise(n = sum(usage_count, na.rm = T),
+            parent = case_when(
+                    n > 20 ~ "",
+                    n > 5 ~ "used 6-20 times",
+                    TRUE ~ "used 1-5 times"))
+entropy = entropy(tests$n)
+norm_entropy = entropy / log(length(tests$n))
+
+tests <- bind_rows(tests, 
+                   tests %>% filter(parent != "") %>% 
+                     ungroup() %>% 
+                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+```
+
+
+## Personality and Social Psychology
+### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+```{r, out.width='100%'}
+fig <- plot_ly(
+  type='treemap',
+  labels = tests$Name,
+  parents = tests$parent,
+  values= tests$n,
+  text = tests$DOI,
+  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
+  hoverinfo="label+value+text",
+  textinfo="label+value")
+
+fig %>% layout(
+  autosize = TRUE,
+  margin = list(l = 0, t = 0, r = 0 , b = 0)
+)
+```
+
+
+```{r}
+tests <- psyctests_info %>%
+  filter(subdiscipline_1 == "Industrial/Organizational Psychology") %>%
+  group_by(DOI, Name) %>%
+  summarise(n = sum(usage_count, na.rm = T),
+            parent = case_when(
+                    n > 20 ~ "",
+                    n > 5 ~ "used 6-20 times",
+                    TRUE ~ "used 1-5 times"))
+entropy = entropy(tests$n)
+norm_entropy = entropy / log(length(tests$n))
+
+tests <- bind_rows(tests,
+                   tests %>% filter(parent != "") %>%
+                     ungroup() %>%
+                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+```
+
+
+## Industrial/Organizational Psychology
+### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+```{r, out.width='100%'}
+fig <- plot_ly(
+  type='treemap',
+  labels = tests$Name,
+  parents = tests$parent,
+  values= tests$n,
+  text = tests$DOI,
+  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
+  hoverinfo="label+value+text",
+  textinfo="label+value")
+
+fig %>% layout(
+  autosize = TRUE,
+  margin = list(l = 0, t = 0, r = 0 , b = 0)
+)
+```
+
+
+```{r}
+tests <- psyctests_info %>%
+  filter(subdiscipline_1 == "Health and Clinical Psychology") %>%
+  group_by(DOI, Name) %>%
+  summarise(n = sum(usage_count, na.rm = T),
+            parent = case_when(
+                    n > 20 ~ "",
+                    n > 5 ~ "used 6-20 times",
+                    TRUE ~ "used 1-5 times"))
+entropy = entropy(tests$n)
+norm_entropy = entropy / log(length(tests$n))
+
+tests <- bind_rows(tests,
+                   tests %>% filter(parent != "") %>%
+                     ungroup() %>%
+                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+```
+
+
+## Health and Clinical Psychology
+### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+```{r, out.width='100%'}
+fig <- plot_ly(
+  type='treemap',
+  labels = tests$Name,
+  parents = tests$parent,
+  values= tests$n,
+  text = tests$DOI,
+  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
+  hoverinfo="label+value+text",
+  textinfo="label+value")
+
+fig %>% layout(
+  autosize = TRUE,
+  margin = list(l = 0, t = 0, r = 0 , b = 0)
+)
+```
+
+
+```{r}
+tests <- psyctests_info %>%
+  filter(subdiscipline_1 == "Educational and Developmental Psychology") %>%
+  group_by(DOI, Name) %>%
+  summarise(n = sum(usage_count, na.rm = T),
+            parent = case_when(
+                    n > 20 ~ "",
+                    n > 5 ~ "used 6-20 times",
+                    TRUE ~ "used 1-5 times"))
+entropy = entropy(tests$n)
+norm_entropy = entropy / log(length(tests$n))
+
+tests <- bind_rows(tests,
+                   tests %>% filter(parent != "") %>%
+                     ungroup() %>%
+                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+```
+
+
+## Educational and Developmental Psychology
+### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+```{r, out.width='100%'}
+fig <- plot_ly(
+  type='treemap',
+  labels = tests$Name,
+  parents = tests$parent,
+  values= tests$n,
+  text = tests$DOI,
+  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
+  hoverinfo="label+value+text",
+  textinfo="label+value")
+
+fig %>% layout(
+  autosize = TRUE,
+  margin = list(l = 0, t = 0, r = 0 , b = 0)
+)
+```
+
+```{r}
+tests <- psyctests_info %>%
+  filter(subdiscipline_1 == "Cognitive Psychology") %>%
+  group_by(DOI, Name) %>%
+  summarise(n = sum(usage_count, na.rm = T),
+            parent = case_when(
+                    n > 20 ~ "",
+                    n > 5 ~ "used 6-20 times",
+                    TRUE ~ "used 1-5 times"))
+entropy = entropy(tests$n)
+norm_entropy = entropy / log(length(tests$n))
+
+tests <- bind_rows(tests,
+                   tests %>% filter(parent != "") %>%
+                     ungroup() %>%
+                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+```
+
+
+## Cognitive Psychology
+### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+```{r, out.width='100%'}
+fig <- plot_ly(
+  type='treemap',
+  labels = tests$Name,
+  parents = tests$parent,
+  values= tests$n,
+  text = tests$DOI,
+  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
+  hoverinfo="label+value+text",
+  textinfo="label+value")
+
+fig %>% layout(
+  autosize = TRUE,
+  margin = list(l = 0, t = 0, r = 0 , b = 0)
+)
+```
+

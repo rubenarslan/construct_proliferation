@@ -1,0 +1,31 @@
+name: Construct Proliferation
+output_dir: docs
+navbar:
+  title: Construct Proliferation
+  left:
+  - text: Overview
+    href: index.html
+  - text: Import XML
+    href: 1_import.html
+  - text: Preprocessing
+    href: 2_preprocessing.html
+  - text: Compare PsycInfo & PsycTests
+    href: 2_psycinfo_cleaning.html
+  - text: Proliferation plots
+    href: 4_proliferation.html
+  right:
+  - text: ''
+    icon: fa-github
+    href: https://github.com/rubenarslan/construct_proliferation
+output:
+  html_document:
+    theme: paper
+    code_folding: hide
+    df_print: tibble
+    code_download: yes
+    highlight: zenburn
+    lib_dir: site_libs
+    self_contained: no
+exclude:
+- ignore
+

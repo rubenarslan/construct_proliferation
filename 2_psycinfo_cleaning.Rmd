@@ -12,10 +12,10 @@ editor_options:
 ```{r}
 library(tidyverse)
 ## get my transliteration table (I tried to guess the PsycInfo ASCII name from the PsycTESTS name)
-translit <- readRDS("raw_data/psycinfo_psyctests_names.rds")
+translit <- readRDS("../sober_rubric/raw_data/psycinfo_psyctests_names.rds")
 
 ## get our first scrape (by journal, checking counts for each year in each journal for top tests)
-psycinfo_scrape_by_journal <- read_tsv('raw_data/merged_table_all.tsv') %>% 
+psycinfo_scrape_by_journal <- read_tsv('../sober_rubric/raw_data/merged_table_all.tsv') %>% 
   drop_na(Name) %>% 
   # this tsv can be found in "Scraping-EBSCO-Host\data\merged tables"
 #  mutate(Name = toTitleCase(Name)) %>% 
@@ -24,8 +24,8 @@ psycinfo_scrape_by_journal <- read_tsv('raw_data/merged_table_all.tsv') %>%
   summarise(usage_count = sum(usage_count))
 
 ## get our second scrape (by test DOI and year)
-overview <- readr::read_tsv("raw_data/20230617_ebsco_scrape_clean_overview_table_1.tsv")
-byyear <- readr::read_tsv("raw_data/20230617_ebsco_scrape_table_years_1.tsv")
+overview <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_clean_overview_table_1.tsv")
+byyear <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_table_years_1.tsv")
 byyear %>% group_by(DOI) %>% summarise(Hits = sum(Hits, na.rm=T)) %>% pull(Hits) %>% table()
 
 one_hit_wonders <- overview %>% filter(Hits == 1) %>% 
@@ -190,7 +190,7 @@ psycinfo_merged <- bind_rows(
 psycinfo_merged %>% 
   summarise(n_distinct(DOI), sum(Hits, na.rm = T), sum(Hits, na.rm = T)/n_distinct(DOI))
 
-saveRDS(psycinfo_merged, "raw_data/psycinfo_merged_scrape_1_and_2.rds")
+saveRDS(psycinfo_merged, "../sober_rubric/raw_data/psycinfo_merged_scrape_1_and_2.rds")
 ```
 
 
