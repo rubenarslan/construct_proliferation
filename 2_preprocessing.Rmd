@@ -139,50 +139,50 @@ records_wide$acronym_base <- acronym_base
 ## Extract source citation DOI
 Extract the source citation DOI. I didn't actually run this yet, want to do it with scopus where I can get citations by year.
 ```{r}
-records_wide <- records_wide %>% 
-  hoist(SourceCitationList, first_source_doi = list(1, "DOI", 1), .remove = FALSE)
-
-source_dois <- records_wide %>% select(first_source_doi) %>% drop_na() %>% distinct()
-
-# commented out for now
-# source_dois <- rcrossref::cr_citation_count(source_dois$first_source_doi)
-# records_wide <- records_wide %>% left_join(source_dois %>% rename(first_source_doi = doi, citation_count_crossref = count), by = "first_source_doi")
-
-
-library(rscopus)
-scopus_api_key <- "7804cba4fc15e860f8c5f549ac2215eb"
-find_cit_scopus <- function(x){
-
-}
-for (i in seq_along(nrow(source_dois))) {
-  find_cit_scopus(source_dois$first_source_doi[i])
-  if(i %% 10 == 0) print(i, source_dois$first_source_doi[i])
-}
-existing <- readr::read_tsv("../sober_rubric/raw_data/scopus_citation_counts.tsv")
-for (i in seq_along(setdiff(source_dois$first_source_doi, existing$doi))) {
-  x <- source_dois$first_source_doi[i]
-  if(! x %in% existing$doi) {
-    s <- generic_elsevier_api(api_key = scopus_api_key,
-                              doi = x,
-                              date = "1980-2023",
-                              type = "citations",
-                              search_type = "scopus")
-    citations <- s$content$`abstract-citations-response`$citeColumnTotalXML$citeCountHeader$columnTotal %>% as.data.frame()
-    if(length(citations)) {
-      colnames(citations) <- s$content$`abstract-citations-response`$citeColumnTotalXML$citeCountHeader$columnHeading %>% as.data.frame()
-      citations <- pivot_longer(citations, everything(), names_to = "year", values_to = "citation_count", values_transform = as.numeric, names_transform = as.numeric)
-      citations$doi <- x
-    } else {
-      citations <- tibble(doi = x)
-    }
-    existing <- bind_rows(existing, citations)
-    readr::write_tsv(existing, "../sober_rubric/raw_data/scopus_citation_counts.tsv")
-  }
-  if(i %% 10 == 0) { cat(paste(i, source_dois$first_source_doi[i])) }
-}
-
-
-records_wide <- records_wide %>% distinct() %>% left_join(existing %>% group_by(doi) %>% summarise(citation_count = sum(citation_count, na.rm = T)), by = c("first_source_doi" = "doi"))
+# records_wide <- records_wide %>% 
+#   hoist(SourceCitationList, first_source_doi = list(1, "DOI", 1), .remove = FALSE)
+# 
+# source_dois <- records_wide %>% select(first_source_doi) %>% drop_na() %>% distinct()
+# 
+# # commented out for now
+# # source_dois <- rcrossref::cr_citation_count(source_dois$first_source_doi)
+# # records_wide <- records_wide %>% left_join(source_dois %>% rename(first_source_doi = doi, citation_count_crossref = count), by = "first_source_doi")
+# 
+# 
+# library(rscopus)
+# scopus_api_key <- "7804cba4fc15e860f8c5f549ac2215eb"
+# find_cit_scopus <- function(x){
+# 
+# }
+# for (i in seq_along(nrow(source_dois))) {
+#   find_cit_scopus(source_dois$first_source_doi[i])
+#   if(i %% 10 == 0) print(i, source_dois$first_source_doi[i])
+# }
+# existing <- readr::read_tsv("../sober_rubric/raw_data/scopus_citation_counts.tsv")
+# for (i in seq_along(setdiff(source_dois$first_source_doi, existing$doi))) {
+#   x <- source_dois$first_source_doi[i]
+#   if(! x %in% existing$doi) {
+#     s <- generic_elsevier_api(api_key = scopus_api_key,
+#                               doi = x,
+#                               date = "1980-2023",
+#                               type = "citations",
+#                               search_type = "scopus")
+#     citations <- s$content$`abstract-citations-response`$citeColumnTotalXML$citeCountHeader$columnTotal %>% as.data.frame()
+#     if(length(citations)) {
+#       colnames(citations) <- s$content$`abstract-citations-response`$citeColumnTotalXML$citeCountHeader$columnHeading %>% as.data.frame()
+#       citations <- pivot_longer(citations, everything(), names_to = "year", values_to = "citation_count", values_transform = as.numeric, names_transform = as.numeric)
+#       citations$doi <- x
+#     } else {
+#       citations <- tibble(doi = x)
+#     }
+#     existing <- bind_rows(existing, citations)
+#     readr::write_tsv(existing, "../sober_rubric/raw_data/scopus_citation_counts.tsv")
+#   }
+#   if(i %% 10 == 0) { cat(paste(i, source_dois$first_source_doi[i])) }
+# }
+# 
+# 
+# records_wide <- records_wide %>% distinct() %>% left_join(existing %>% group_by(doi) %>% summarise(citation_count = sum(citation_count, na.rm = T)), by = c("first_source_doi" = "doi"))
 ```
 
 
