@@ -20,6 +20,11 @@ groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "read
                     "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes"), 
                   date = "2024-02-24")
 theme_set(theme_minimal(base_size = 14))
+
+calc_norm_entropy <- function(n) {
+  n <- n[n>0]
+  entropy::entropy(n)/log(length(n))
+}
 ```
 
 ```{r}
@@ -40,7 +45,7 @@ tests <- psyctests_info %>%
                     n > 5 ~ "used 6-20 times",
                     TRUE ~ "used 1-5 times"))
 entropy = entropy(tests$n)
-norm_entropy = entropy / log(length(tests$n))
+norm_entropy = calc_norm_entropy(tests$n)
 
 tests <- bind_rows(tests, 
                    tests %>% filter(parent != "") %>% 
@@ -79,7 +84,7 @@ tests <- psyctests_info %>%
                     n > 5 ~ "used 6-20 times",
                     TRUE ~ "used 1-5 times"))
 entropy = entropy(tests$n)
-norm_entropy = entropy / log(length(tests$n))
+norm_entropy = calc_norm_entropy(tests$n)
 
 tests <- bind_rows(tests, 
                    tests %>% filter(parent != "") %>% 
@@ -118,7 +123,7 @@ tests <- psyctests_info %>%
                     n > 5 ~ "used 6-20 times",
                     TRUE ~ "used 1-5 times"))
 entropy = entropy(tests$n)
-norm_entropy = entropy / log(length(tests$n))
+norm_entropy = calc_norm_entropy(tests$n)
 
 tests <- bind_rows(tests,
                    tests %>% filter(parent != "") %>%
@@ -157,7 +162,7 @@ tests <- psyctests_info %>%
                     n > 5 ~ "used 6-20 times",
                     TRUE ~ "used 1-5 times"))
 entropy = entropy(tests$n)
-norm_entropy = entropy / log(length(tests$n))
+norm_entropy = calc_norm_entropy(tests$n)
 
 tests <- bind_rows(tests,
                    tests %>% filter(parent != "") %>%
@@ -196,7 +201,7 @@ tests <- psyctests_info %>%
                     n > 5 ~ "used 6-20 times",
                     TRUE ~ "used 1-5 times"))
 entropy = entropy(tests$n)
-norm_entropy = entropy / log(length(tests$n))
+norm_entropy = calc_norm_entropy(tests$n)
 
 tests <- bind_rows(tests,
                    tests %>% filter(parent != "") %>%
@@ -234,7 +239,7 @@ tests <- psyctests_info %>%
                     n > 5 ~ "used 6-20 times",
                     TRUE ~ "used 1-5 times"))
 entropy = entropy(tests$n)
-norm_entropy = entropy / log(length(tests$n))
+norm_entropy = calc_norm_entropy(tests$n)
 
 tests <- bind_rows(tests,
                    tests %>% filter(parent != "") %>%
