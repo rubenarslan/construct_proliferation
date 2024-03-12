@@ -29,9 +29,9 @@ calc_norm_entropy <- function(n) {
 }
 ```
 
-<details><summary>Import</summary>
-## Import
-### APA PsycTests
+
+# Import
+## APA PsycTests
 
 ```{r}
 records_wide <- readRDS("../sober_rubric/raw_data/preprocessed_records.rds")
@@ -41,7 +41,7 @@ records_wide %>% group_by(Name)  %>% filter(n()>1) %>% ungroup() %>% summarise(n
 records_wide$first_construct <- str_trim(str_replace_all(str_to_lower(records_wide$first_construct), "[:space:]+", " "))
 ```
 
-### First EBSCO scrape of APA PsycInfo
+## First EBSCO scrape of APA PsycInfo
 ```{r}
 psycinfo <- read_tsv('../sober_rubric/raw_data/merged_table_all.tsv') %>% 
   # this tsv can be found in "Scraping-EBSCO-Host\data\merged tables"
@@ -52,7 +52,7 @@ psycinfo <- read_tsv('../sober_rubric/raw_data/merged_table_all.tsv') %>%
 ```
 
 
-### Second EBSCO scrape of APA PsycInfo
+## Second EBSCO scrape of APA PsycInfo
 ```{r}
 overview <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_clean_overview_table_1.tsv")
 byyear <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_table_years_1.tsv")
@@ -99,11 +99,12 @@ psyctests_info <- records_wide %>%
 write_rds(psyctests_info, "../sober_rubric/raw_data/psyctests_info.rds")
 ```
 
-</details>
 
-## 2016 changes in standards
+
+# 2016 changes in standards
 ```{r}
-test_data <- records_wide %>% 
+test_data <- records_wide %>%
+  filter(TestYear <= 2022) %>% 
     rowwise() %>% 
     mutate(Methodology = length(MethodologyList) >0) %>% 
     mutate(AdministrationMethod = length(AdministrationMethodList) >0) %>% 
@@ -124,8 +125,7 @@ test_data <- records_wide %>%
               TestItems = mean(TestItemsAvailable == "Yes")) %>% 
     pivot_longer(-TestYear)
 
-test_data %>%
-  filter(TestYear <= 2022) %>% 
+test_data %>% 
   ggplot(aes(TestYear, value, color = name)) + 
   geom_vline(xintercept = 2016, linetype = 'dashed') +
   geom_line() +
@@ -133,17 +133,17 @@ test_data %>%
                      limits = c(1993, 2030), 
                      breaks = seq(1993, 2022, by = 1),
                      labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
-                     expand = expansion(add = c(0, 2.2))) +
+                     expand = expansion(add = c(0, 0.5))) +
   scale_color_brewer(type = "qual", guide = "none", palette = 2) +
   geom_text_repel(
     data = test_data %>% drop_na() %>% group_by(name) %>% filter(TestYear == max(TestYear, na.rm = T)),
     aes(label = name), 
     segment.color = 'grey', 
-    xlim = c(2024, 2033),
+    xlim = c(2022, 2033),
     box.padding = 0.1,
-    point.padding = 0.6,
+    # point.padding = 0.6,
     nudge_x = 1.2, 
-    nudge_y = 0,
+    # nudge_y = 0,
     force = 0.5,
     hjust = 0,
     direction="y",
@@ -157,6 +157,8 @@ test_data %>%
         legend.position = "none")
 ggsave("figures/changed_standards_2016.pdf", width = 8, height = 4)
 ggsave("figures/changed_standards_2016.png", width = 8, height = 4)
+
+ +
 ```
 
 
@@ -273,7 +275,7 @@ psyctests_info %>% group_by(DOI, TestYear) %>%
   ylab("Frequency")
 ```
 
-## New measures by publication year
+# New measures by publication year
 ```{r}
 count_all <- records_wide %>% 
   group_by(TestYear) %>% 
@@ -312,7 +314,7 @@ counts <- bind_rows(
 count_plot <- ggplot(counts, aes(Year, tests, color = origin)) + 
   geom_line() +
   geom_vline(xintercept = 2016, linetype = 'dashed') +
-  scale_y_continuous("Number of measures published") +
+  scale_y_continuous("Number of measures/constructs published") +
   scale_x_continuous("Publication year in APA PsycTests",
                      limits = c(1993, 2030), 
                      breaks = seq(1993, 2022, by = 1),
@@ -364,7 +366,7 @@ ggsave("figures/counts.png", width = 8, height = 4)
 
 
 
-### Cumulative number of measures and constructs
+# Cumulative number of measures and constructs
 ```{r}
 cumsum_all <- records_wide %>% 
   group_by(TestYear) %>% 
@@ -439,7 +441,7 @@ ggsave("figures/cumsums.pdf", width = 8, height = 4)
 ggsave("figures/cumsums.png", width = 8, height = 4)
 ```
 
-#### By subdiscipline
+## By subdiscipline
 ```{r fig.width=8,fig.height=7}
 cumsum_all <- records_wide %>% 
   group_by(subdiscipline_1, TestYear) %>% 
@@ -498,10 +500,10 @@ ggplot(cumsums, aes(Year, tests, color = origin)) +
         panel.grid.minor.x = element_blank(),
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
-        legend.position = c(0.5, 0.1),
+        legend.position = c(0.58, 0.08),
         legend.justification = c(0, 0),
         legend.box.just = "right",
-        legend.text = element_text(size = 13))
+        legend.text = element_text(size = 11))
 
 
 
@@ -510,7 +512,7 @@ ggsave("figures/cumsums_subdiscipline.png", width = 8, height = 7)
 ```
 
 
-## Tests by usage frequency
+# Tests by usage frequency
 ```{r}
 test_frequency <- psyctests_info %>% 
   mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
@@ -715,7 +717,7 @@ freq_plot
 ggsave("figures/frequency_no0.pdf", width = 8.5, height = 4)
 ```
 
-### By instrument type
+## By instrument type
 ```{r}
 usage_by_year_instrument_type <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
@@ -840,9 +842,9 @@ ggsave("figures/usage_by_year_instrument_type_narrow.pdf", width = 14, height = 
 ggsave("figures/usage_by_year_instrument_type_narrow.png", width = 14, height = 10)
 ```
 
-## Entropy
+# Entropy
 
-### Entropy by year
+## Entropy by year
 ```{r}
 byorig_entropy_by_year <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
@@ -953,9 +955,9 @@ ggsave("figures/entropy.png", width = 8, height = 4)
 ```
 
 
-#### by subdiscipline
+## by subdiscipline
 
-##### all measures
+### all measures
 ```{r fig.width=8,fig.height=4}
 entropy_by_year <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
@@ -1007,12 +1009,12 @@ entropy_by_year %>%
                   box.padding = 0.1,
                   max.overlaps = Inf,
                   point.padding = 0.6,
-                  xlim = c(2023, NA),
-                  nudge_x = 1,
+                  xlim = c(2022, NA),
+                  nudge_x = 2,
                   # nudge_y = 0.0,
-                  force = 20,
+                  force = 5,
                   hjust = 0,
-                  # direction="y",
+                  direction="y",
                   na.rm = F) +
   theme_minimal(base_size = 13) +
    theme(panel.grid.minor.y = element_blank(),
@@ -1021,11 +1023,11 @@ entropy_by_year %>%
         plot.title = element_text(face="bold"),
         legend.position = "none") +
     coord_cartesian(clip = "off")
-ggsave("figures/entropy_subdiscipline.pdf", width = 8, height = 4)
-ggsave("figures/entropy_subdiscipline.png", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_all.pdf", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_all.png", width = 8, height = 4)
 ```
 
-##### original measures
+### original measures
 ```{r fig.width=8,fig.height=4}
 entropy_by_year <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
@@ -1079,12 +1081,12 @@ entropy_by_year %>%
                   box.padding = 0.1,
                   max.overlaps = Inf,
                   point.padding = 0.6,
-                  xlim = c(2023, NA),
-                  nudge_x = 1,
+                  xlim = c(2022, NA),
+                  nudge_x = 2,
                   # nudge_y = 0.0,
-                  force = 20,
+                  force = 5,
                   hjust = 0,
-                  # direction="y",
+                  direction="y",
                   na.rm = F) +
   theme_minimal(base_size = 13) +
    theme(panel.grid.minor.y = element_blank(),
@@ -1093,10 +1095,10 @@ entropy_by_year %>%
         plot.title = element_text(face="bold"),
         legend.position = "none") +
     coord_cartesian(clip = "off")
-ggsave("figures/entropy_subdiscipline.pdf", width = 8, height = 4)
-ggsave("figures/entropy_subdiscipline.png", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_orig.pdf", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_orig.png", width = 8, height = 4)
 ```
-##### constructs
+### constructs
 ```{r}
 entropy_by_year <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
@@ -1167,7 +1169,7 @@ ggsave("figures/entropy_subdiscipline_constructs.pdf", width = 10, height = 4)
 ggsave("figures/entropy_subdiscipline_constructs.png", width = 10, height = 4)
 ```
 
-#### By instrument type
+### By instrument type
 ```{r}
 entropy_by_year <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
@@ -1233,7 +1235,7 @@ entropy_by_year %>%
 ```
 
 
-### Lorenz curves
+## Lorenz curves
 ```{r}
 test_frequency <- psyctests_info %>% 
   mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
@@ -1273,7 +1275,7 @@ ggplot(test_frequency, aes(n, color = subdiscipline_1)) +
     hrbrthemes::scale_y_percent("Cumulative percentage of measure market share")
 ```
 
-## Robustness checks
+# Robustness checks
 ```{r}
 all_constructs_over_time <- records_wide %>% select(subdiscipline_1, DOI, TestYear, ConstructList) %>% 
     unnest(ConstructList) %>% 
@@ -1359,7 +1361,7 @@ cumsum_plot <- ggplot(cumsums, aes(Year, constructs, color = origin)) +
 cumsum_plot
 ```
 
-### All or first constructs
+## All or first constructs
 
 For some 20% of tests, two or more constructs were coded. In most plots, we simply use
 the first construct for each test.
@@ -1476,7 +1478,7 @@ plot_entropy <- entropy_by_year %>%
 plot_entropy
 ```
 
-### Unbiased estimators of Shannon entropy
+## Unbiased estimators of Shannon entropy
 Does not make much of a difference.
 ```{r}
 byorig_entropy_by_year <- psyctests_info %>% 
@@ -1613,7 +1615,7 @@ plot_entropy <- entropy_by_year %>%
 plot_entropy
 ```
 
-### Entropy by classificaiton
+## Entropy by classificaiton
 ```{r}
 entropy_by_class <- psyctests_info %>% 
   group_by(classification_1, DOI) %>% 
@@ -1633,7 +1635,7 @@ entropy_by_class <- psyctests_info %>%
 kable(entropy_by_class)
 ```
 
-### Entropy by instrument type
+## Entropy by instrument type
 ```{r}
 psyctests_info %>% 
   group_by(instrument_type_broad, DOI) %>% 
@@ -1653,7 +1655,7 @@ psyctests_info %>%
   kable()
 ```
 
-## Tests by exact same name
+# Tests by exact same name
 ```{r}
 same_name_tests <- records_wide %>% group_by(name_psycinfo) %>% filter(n_distinct(DOI) > 1) %>% summarise(n = n())
 nrow(same_name_tests)
