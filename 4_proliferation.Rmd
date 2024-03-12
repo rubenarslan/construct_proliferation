@@ -30,8 +30,8 @@ calc_norm_entropy <- function(n) {
 ```
 
 
-# Import
-## APA PsycTests
+<details><summary>Import</summary>
+APA PsycTests
 
 ```{r}
 records_wide <- readRDS("../sober_rubric/raw_data/preprocessed_records.rds")
@@ -41,7 +41,7 @@ records_wide %>% group_by(Name)  %>% filter(n()>1) %>% ungroup() %>% summarise(n
 records_wide$first_construct <- str_trim(str_replace_all(str_to_lower(records_wide$first_construct), "[:space:]+", " "))
 ```
 
-## First EBSCO scrape of APA PsycInfo
+First EBSCO scrape of APA PsycInfo
 ```{r}
 psycinfo <- read_tsv('../sober_rubric/raw_data/merged_table_all.tsv') %>% 
   # this tsv can be found in "Scraping-EBSCO-Host\data\merged tables"
@@ -52,7 +52,7 @@ psycinfo <- read_tsv('../sober_rubric/raw_data/merged_table_all.tsv') %>%
 ```
 
 
-## Second EBSCO scrape of APA PsycInfo
+Second EBSCO scrape of APA PsycInfo
 ```{r}
 overview <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_clean_overview_table_1.tsv")
 byyear <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_table_years_1.tsv")
@@ -99,18 +99,18 @@ psyctests_info <- records_wide %>%
 write_rds(psyctests_info, "../sober_rubric/raw_data/psyctests_info.rds")
 ```
 
-
+</details>
 
 # 2016 changes in standards
 ```{r}
 test_data <- records_wide %>%
-  filter(TestYear <= 2022) %>% 
-    rowwise() %>% 
-    mutate(Methodology = length(MethodologyList) >0) %>% 
-    mutate(AdministrationMethod = length(AdministrationMethodList) >0) %>% 
-    mutate(PopulationGroup = length(PopulationGroupList) >0) %>% 
-    mutate(AgeGroup = length(AgeGroupList) >0) %>% 
-    group_by(TestYear) %>% 
+  filter(TestYear <= 2022) %>%
+    rowwise() %>%
+    mutate(Methodology = length(MethodologyList) >0) %>%
+    mutate(AdministrationMethod = length(AdministrationMethodList) >0) %>%
+    mutate(PopulationGroup = length(PopulationGroupList) >0) %>%
+    mutate(AgeGroup = length(AgeGroupList) >0) %>%
+    group_by(TestYear) %>%
     summarise(Reliability = mean(Reliability!="No reliability indicated."),
               FactorAnalysis = mean(FactorAnalysis!="No factor analysis indicated."),
               # Unidimensional = mean(FactorAnalysis=="This is a unidimensional measure."),
@@ -122,27 +122,26 @@ test_data <- records_wide %>%
               AdministrationMethod = mean(AdministrationMethod),
               # AgeGroup = mean(AgeGroup),
               # PopulationGroup = mean(PopulationGroup),
-              TestItems = mean(TestItemsAvailable == "Yes")) %>% 
+              TestItems = mean(TestItemsAvailable == "Yes")) %>%
     pivot_longer(-TestYear)
-
-test_data %>% 
-  ggplot(aes(TestYear, value, color = name)) + 
+test_data %>%
+  ggplot(aes(TestYear, value, color = name)) +
   geom_vline(xintercept = 2016, linetype = 'dashed') +
   geom_line() +
   scale_x_continuous("Publication year in APA PsycTests",
-                     limits = c(1993, 2030), 
+                     limits = c(1993, 2030),
                      breaks = seq(1993, 2022, by = 1),
                      labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
-                     expand = expansion(add = c(0, 0.5))) +
+                     expand = expansion(add = c(0, 1.2))) +
   scale_color_brewer(type = "qual", guide = "none", palette = 2) +
   geom_text_repel(
     data = test_data %>% drop_na() %>% group_by(name) %>% filter(TestYear == max(TestYear, na.rm = T)),
-    aes(label = name), 
-    segment.color = 'grey', 
+    aes(label = name),
+    segment.color = 'grey',
     xlim = c(2022, 2033),
     box.padding = 0.1,
     # point.padding = 0.6,
-    nudge_x = 1.2, 
+    nudge_x = 1.2,
     # nudge_y = 0,
     force = 0.5,
     hjust = 0,
@@ -157,8 +156,6 @@ test_data %>%
         legend.position = "none")
 ggsave("figures/changed_standards_2016.pdf", width = 8, height = 4)
 ggsave("figures/changed_standards_2016.png", width = 8, height = 4)
-
- +
 ```
 
 
@@ -1639,7 +1636,6 @@ kable(entropy_by_class)
 ```{r}
 psyctests_info %>% 
   group_by(instrument_type_broad, DOI) %>% 
-  filter(n > 0) %>% 
   summarise(n = sum(usage_count, na.rm = T),
             parent = case_when(
                     n > 50 ~ "",
