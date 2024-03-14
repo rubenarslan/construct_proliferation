@@ -308,7 +308,7 @@ counts <- bind_rows(
   filter(Year <= 2022)
 
 
-count_plot <- ggplot(counts, aes(Year, tests, color = origin)) + 
+ggplot(counts, aes(Year, tests, color = origin)) + 
   geom_line() +
   geom_vline(xintercept = 2016, linetype = 'dashed') +
   scale_y_continuous("Number of measures/constructs published") +
@@ -328,7 +328,7 @@ count_plot <- ggplot(counts, aes(Year, tests, color = origin)) +
                   segment.color = 'grey',
                   box.padding = 0.1,
                   point.padding = 0.6,
-                  nudge_x = 1.2,
+                  nudge_x = 1.5,
                   nudge_y = -15,
                   force = 0.5,
                   hjust = 0,
@@ -356,7 +356,7 @@ count_plot <- ggplot(counts, aes(Year, tests, color = origin)) +
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
         legend.position = "none")
-count_plot
+
 ggsave("figures/counts.pdf", width = 8, height = 4)
 ggsave("figures/counts.png", width = 8, height = 4)
 ```
@@ -661,7 +661,6 @@ freq_plot <- ggplot(test_frequency, aes(n, count)) +
     #               nudge_y = 10,
     #               direction = "y"
     # ) +
-  theme_minimal(base_size = 13) +
   theme(panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         plot.title.position = "plot",
@@ -669,8 +668,8 @@ freq_plot <- ggplot(test_frequency, aes(n, count)) +
         legend.position = "none")
 
 freq_plot
-ggsave("figures/frequency.pdf", width = 6, height = 3)
-ggsave("figures/frequency.png", width = 6, height = 3)
+ggsave("figures/frequency.pdf", width = 8, height = 4)
+ggsave("figures/frequency.png", width = 8, height = 4)
 
 test_frequency <- test_frequency %>% 
   filter(n >= 1) %>% 
@@ -704,14 +703,13 @@ freq_plot <- ggplot(test_frequency, aes(n, count)) +
     #               nudge_y = 10,
     #               direction = "y"
     # ) +
-  theme_minimal(base_size = 13) +
   theme(panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
         legend.position = "none")
 freq_plot
-ggsave("figures/frequency_no0.pdf", width = 8.5, height = 4)
+ggsave("figures/frequency_no0.pdf", width = 8, height = 4)
 ```
 
 ## By instrument type
@@ -979,7 +977,7 @@ entropy_by_year %>%
   scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2033), 
                      breaks = seq(1993,2022, by = 1),
                      labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
-                     expand = expansion(add = c(0, 16))) +
+                     expand = expansion(add = c(0, 14))) +
   scale_color_brewer(type = "qual", guide = "none", palette = 2) +
   # ggtitle(str_c(n_distinct(tests_by_year$Test), " measures tracked in PsycInfo")) +
  # geom_text_repel(aes(label = gsub("^.*$", " ", subdiscipline_1)), # This will force the correct position of the link's right end.
@@ -1046,12 +1044,12 @@ entropy_by_year <- psyctests_info %>%
 entropy_by_year %>% 
   ggplot(., aes(Year, norm_entropy, color = subdiscipline_1)) +
   geom_line(size = 0.7) +
-  scale_y_continuous("Normalized Shannon Entropy (novel measures)", limits = c(0, 1), labels = scales::percent) +
+  scale_y_continuous("Normalized Shannon Entropy\n(novel measures)", limits = c(0, 1), labels = scales::percent) +
   # geom_line(aes(y = log(n)), color = 'red') +
   scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2030), 
                      breaks = seq(1993, 2022, by = 1),
                      labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
-                     expand = expansion(add = c(0, 16))) +
+                     expand = expansion(add = c(0, 17))) +
   scale_color_brewer(type = "qual", guide = "none", palette = 2) +
   # ggtitle(str_c(n_distinct(tests_by_year$Test), " measures tracked in PsycInfo")) +
  # geom_text_repel(aes(label = gsub("^.*$", " ", subdiscipline_1)), # This will force the correct position of the link's right end.
@@ -1084,8 +1082,7 @@ entropy_by_year %>%
                   force = 5,
                   hjust = 0,
                   direction="y",
-                  na.rm = F) +
-  theme_minimal(base_size = 13) +
+                  na.rm = F)  +
    theme(panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         plot.title.position = "plot",
@@ -1119,51 +1116,37 @@ entropy_by_year %>%
   # geom_line(aes(y = log(n)), color = 'red') +
   scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2038), 
                      breaks = seq(1993, 2022, by = 1),
-                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 10))) +
   scale_color_brewer(type = "qual", guide = "none", palette = 2) +
   # ggtitle(str_c(n_distinct(tests_by_year$Test), " measures tracked in PsycInfo")) +
   # ggrepel::geom_text_repel(
   #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
   #   size = 4, hjust = 1,
   #   ) + 
-  geom_text_repel(aes(label = gsub("^.*$", " ", subdiscipline_1)), # This will force the correct position of the link's right end.
-                  data = entropy_by_year %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
-                  segment.curvature = -0.1,
-                  segment.square = TRUE,
-                  segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.3,
-                  nudge_y = 0,
-                  force = 0.5,
-                  hjust = 0,
-                  direction="y",
-                  na.rm = TRUE
-  ) +
   geom_text_repel(data = entropy_by_year %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
                   aes(label = paste0("  ",str_replace(subdiscipline_1, " Psychology", ""), " (n=", n_tests, ")")),
-                  segment.alpha = 0, ## This will 'hide' the link
+                  # segment.alpha = 0, ## This will 'hide' the link
                   segment.curvature = -0.1,
                   segment.square = TRUE,
                   segment.color = 'grey',
                   box.padding = 0.1,
                   max.overlaps = Inf,
                   point.padding = 0.6,
-                  nudge_x = 1.3,
-                  nudge_y = 0.0,
-                  force = 0.5,
+                  xlim = c(2022, NA),
+                  nudge_x = 2,
+                  # nudge_y = 0.0,
+                  force = 5,
                   hjust = 0,
                   direction="y",
                   na.rm = F) +
-  theme_minimal(base_size = 13) +
    theme(panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
-        legend.position = "none") +
-    coord_cartesian(clip = "off")
-ggsave("figures/entropy_subdiscipline_constructs.pdf", width = 10, height = 4)
-ggsave("figures/entropy_subdiscipline_constructs.png", width = 10, height = 4)
+        legend.position = "none")
+ggsave("figures/entropy_subdiscipline_constructs.pdf", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_constructs.png", width = 8, height = 4)
 ```
 
 ### By instrument type
@@ -1306,7 +1289,7 @@ cumsums <- bind_rows(
   filter(Year <= 2022)
 
 
-cumsum_plot <- ggplot(cumsums, aes(Year, constructs, color = origin)) + 
+ggplot(cumsums, aes(Year, constructs, color = origin)) + 
   geom_line() +
   scale_y_continuous("Cumulative number of constructs") +
   scale_x_continuous("Publication year in APA PsycTests",
@@ -1318,44 +1301,17 @@ cumsum_plot <- ggplot(cumsums, aes(Year, constructs, color = origin)) +
   #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
   #   size = 4, hjust = 1,
   #   ) + 
-  geom_text_repel(aes(label = coalesce("  ", origin)), # This will force the correct position of the link's right end.
-                  data = cumsums %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
-                  segment.curvature = -0.1,
-                  segment.square = TRUE,
-                  segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.15,
-                  nudge_y = -15,
-                  force = 0.5,
-                  hjust = 0,
-                  size = 3.3,
-                  direction="y",
-                  na.rm = TRUE
-  ) +
   geom_text_repel(data = cumsums %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
                   aes(label = paste0(" ", origin, "\n (n = ", constructs, ")")),
-                  segment.alpha = 0, ## This will 'hide' the link
-                  segment.curvature = -0.1,
                   segment.square = TRUE,
                   lineheight = .9,
-                  # segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.15,
-                  nudge_y = -15,
-                  force = 0.5,
+                  segment.color = 'grey',
+                  nudge_x = 1.2,
                   hjust = 0,
-                  direction="y",
-                  size = 3.3,
-                  na.rm = TRUE)+
-  theme_minimal(base_size = 13) +
-   theme(panel.grid.minor.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        plot.title.position = "plot",
-        plot.title = element_text(face="bold"),
-        legend.position = "none")
-cumsum_plot
+                  na.rm = TRUE)
+
+ggsave("figures/cumsum_all_vs_first.pdf", width = 8, height = 4)
+ggsave("figures/cumsum_all_vs_first.png", width = 8, height = 4)
 ```
 
 ## All or first constructs
@@ -1421,7 +1377,7 @@ entropy_by_year <- bind_rows(# "all tests" = all_entropy_by_year,
                              "first constructs" = byconstruct_entropy_by_year,
                              .id = "version")
 
-plot_entropy <- entropy_by_year %>% 
+entropy_by_year %>% 
   ggplot(., aes(Year, norm_entropy, color = version)) +
   geom_line(size = 0.7) +
   scale_y_continuous("Normalized Shannon Entropy", limits = c(0, 1), labels = scales::percent) +
@@ -1435,34 +1391,14 @@ plot_entropy <- entropy_by_year %>%
   #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
   #   size = 4, hjust = 1,
   #   ) + 
-  geom_text_repel(aes(label = str_replace_all(version, "[a-z=0-9/() ]+", " ")), # This will force the correct position of the link's right end.
-                  data = entropy_by_year %>% drop_na() %>% group_by(version) %>% filter(Year == max(Year, na.rm = T)),
-                  segment.curvature = -0.1,
-                  segment.square = TRUE,
-                  lineheight = .9,
-                  segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.15,
-                  nudge_y = 0.03,
-                  force = 0.9,
-                  hjust = 0,
-                  direction="y",
-                  size = 3.3,
-                  na.rm = TRUE) +
   geom_text_repel(data = entropy_by_year %>% drop_na() %>% group_by(version) %>% filter(Year == max(Year, na.rm = T)),
                   aes(label = paste0(" ",version)), # "\n (n = ", n_tests, ")"
-                  segment.alpha = 0, ## This will 'hide' the link
-                  segment.curvature = -0.1,
+                  segment.curvature = -0.5,
                   segment.square = TRUE,
-                  # segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.15,
-                  nudge_y = 0.0,
+                  segment.color = 'grey', 
+                  xlim = c(2023, 2030),
+                  nudge_x = 1.14,
                   lineheight = .9,
-                  force = 0.9,
-                  size = 3.3,
                   hjust = 0,
                   direction="y",
                   na.rm = TRUE) +
@@ -1472,7 +1408,10 @@ plot_entropy <- entropy_by_year %>%
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
         legend.position = "none")
-plot_entropy
+
+
+ggsave("figures/entropy_all_vs_first.pdf", width = 8, height = 4)
+ggsave("figures/entropy_all_vs_first.png", width = 8, height = 4)
 ```
 
 ## Unbiased estimators of Shannon entropy
