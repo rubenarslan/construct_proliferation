@@ -320,32 +320,16 @@ ggplot(counts, aes(Year, tests, color = origin)) +
   # ggrepel::geom_text_repel(
   #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
   #   size = 4, hjust = 1,
-  #   ) + 
-  geom_text_repel(aes(label = coalesce("  ", origin)), # This will force the correct position of the link's right end.
-                  data = counts %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
-                  segment.curvature = -0.1,
-                  segment.square = TRUE,
-                  segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.5,
-                  nudge_y = -15,
-                  force = 0.5,
-                  hjust = 0,
-                  size = 3.3,
-                  direction="y",
-                  na.rm = F
-  ) +
+  #   ) +
   geom_text_repel(data = counts %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
                   aes(label = paste0(" ", origin)),
-                  segment.alpha = 0, ## This will 'hide' the link
                   segment.curvature = -0.1,
                   segment.square = TRUE,
                   lineheight = .9,
                   # segment.color = 'grey',
                   box.padding = 0.1,
                   point.padding = 0.6,
-                  nudge_x = 1.2,
+                  nudge_x = 1.5,
                   nudge_y = -15,
                   force = 1,
                   hjust = 0,
@@ -424,7 +408,7 @@ ggplot(cumsums, aes(Year, tests, color = origin)) +
                   segment.color = 'grey',
                   nudge_x = 1.2,
                   hjust = 0,
-                  na.rm = TRUE)+
+                  na.rm = TRUE) +
    # theme_minimal(base_size = 13) +
    theme(panel.grid.minor.y = element_blank(),
         panel.grid.minor.x = element_blank(),
@@ -1254,6 +1238,487 @@ ggplot(test_frequency, aes(n, color = subdiscipline_1)) +
     hrbrthemes::scale_x_percent("Cumulative percentage of measures") +
     hrbrthemes::scale_y_percent("Cumulative percentage of measure market share")
 ```
+
+# Survival
+
+## aggregate stats
+```{r}
+
+constructs <- psyctests_info %>% 
+     # filter(between(first_pub_year, 1950, 2015)) %>%
+     unnest(ConstructList) %>% 
+     rowwise() %>% 
+     mutate(construct = unlist(ConstructList)) %>% 
+     select(-ConstructList) %>% 
+     filter(between(Year, 1993, 2022)) %>% 
+     drop_na(construct) %>% 
+     mutate(survival = last_pub_year - first_pub_year,
+            survived_five = if_else(survival >= 5, T, F),
+            survived_ten = if_else(survival >= 10, T, F)) %>%
+     distinct(construct, .keep_all = TRUE)
+
+mean(constructs$survival, na.rm = T)
+sd(constructs$survival, na.rm = T)
+median(constructs$survival, na.rm = T)
+max(constructs$survival, na.rm = T)
+min(constructs$survival, na.rm = T)
+```
+
+```{r}
+
+measures <- psyctests_info %>% 
+     filter(between(Year, 1993, 2022))  %>% 
+     mutate(survival = last_pub_year - first_pub_year,
+            survived_five = if_else(survival >= 5, T, F),
+            survived_ten = if_else(survival >= 10, T, F)) %>%
+     distinct(DOI, .keep_all = TRUE)
+
+mean(measures$survival, na.rm = T)
+sd(measures$survival, na.rm = T)
+median(measures$survival, na.rm = T)
+max(measures$survival, na.rm = T)
+min(measures$survival, na.rm = T)
+```
+
+
+## cumulative sum 
+### all constructs
+```{r}
+cumsum_construct <- constructs %>% 
+  arrange(TestYear) %>% 
+  group_by(TestYear) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(TestYear) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+cumsum_construct_survived_5 <- constructs %>% 
+  filter(survived_five == T) %>% 
+  arrange(TestYear) %>% 
+  group_by(TestYear) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(TestYear) %>% 
+  mutate(constructs = cumsum(constructs)) 
+  
+cumsum_construct_survived_10 <- constructs %>% 
+  filter(survived_ten == T) %>% 
+  arrange(TestYear) %>% 
+  group_by(TestYear) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(TestYear) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+
+
+cumsums <- bind_rows(
+  "all constructs" = cumsum_construct,
+  "constructs in use\n for => 5 years" = cumsum_construct_survived_5,
+  "constructs in use\n for => 10 years" = cumsum_construct_survived_10,
+  .id = "origin"
+  ) %>% 
+  rename(Year = TestYear) %>% 
+  filter(Year <= 2022)
+
+
+ggplot(cumsums, aes(Year, constructs, color = origin)) + 
+  geom_line() +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  scale_y_continuous("Cumulative number of constructs") +
+  scale_x_continuous("Publication year in APA PsycTests",
+                     limits = c(1993, 2030), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 1))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggrepel::geom_text_repel(
+  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
+  #   size = 4, hjust = 1,
+  #   )  +
+  geom_text_repel(data = cumsums %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ", origin, "\n (n = ", constructs, ")")),
+                  segment.square = TRUE,
+                  lineheight = .9,
+                  segment.color = 'grey',
+                  nudge_x = 1.2,
+                  hjust = 0,
+                  na.rm = TRUE)+
+   # theme_minimal(base_size = 13) +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")  +
+    guides(
+    x = guide_axis(cap = "both"), # Cap both ends
+  )
+
+ggsave("figures/cumsums_survival_all.pdf", width = 8, height = 4)
+ggsave("figures/cumsums_survival_all.png", width = 8, height = 4)
+```
+
+### first constructs
+```{r}
+first_constructs <- constructs %>%
+  distinct(first_construct, .keep_all = TRUE)
+
+
+cumsum_construct <- first_constructs %>% 
+  arrange(TestYear) %>% 
+  group_by(TestYear) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(TestYear) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+cumsum_construct_survived_5 <- first_constructs %>% 
+  filter(survived_five == T) %>% 
+  arrange(TestYear) %>% 
+  group_by(TestYear) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(TestYear) %>% 
+  mutate(constructs = cumsum(constructs)) 
+  
+cumsum_construct_survived_10 <- first_constructs %>% 
+  filter(survived_ten == T) %>% 
+  arrange(TestYear) %>% 
+  group_by(TestYear) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(TestYear) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+
+
+cumsums <- bind_rows(
+  "all constructs" = cumsum_construct,
+  "constructs in use\n for => 5 years" = cumsum_construct_survived_5,
+  "constructs in use\n for => 10 years" = cumsum_construct_survived_10,
+  .id = "origin"
+  ) %>% 
+  rename(Year = TestYear) %>% 
+  filter(Year <= 2022)
+
+
+ggplot(cumsums, aes(Year, constructs, color = origin)) + 
+  geom_line() +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  scale_y_continuous("Cumulative number of constructs") +
+  scale_x_continuous("Publication year in APA PsycTests",
+                     limits = c(1993, 2030), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 1))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggrepel::geom_text_repel(
+  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
+  #   size = 4, hjust = 1,
+  #   )  +
+  geom_text_repel(data = cumsums %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ", origin, "\n (n = ", constructs, ")")),
+                  segment.square = TRUE,
+                  lineheight = .9,
+                  segment.color = 'grey',
+                  nudge_x = 1.2,
+                  hjust = 0,
+                  na.rm = TRUE)+
+   # theme_minimal(base_size = 13) +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")  +
+    guides(
+    x = guide_axis(cap = "both"), # Cap both ends
+  )
+
+ggsave("figures/cumsums_survival_first.pdf", width = 8, height = 4)
+ggsave("figures/cumsums_survival_first.png", width = 8, height = 4)
+```
+
+### measures
+```{r}
+cumsum_all <- measures %>% 
+  group_by(TestYear) %>% 
+  summarise(tests = n()) %>% 
+  arrange(TestYear) %>% 
+  mutate(tests = cumsum(tests)) 
+
+cumsum_5 <- measures %>% 
+  filter(survived_five == T) %>% 
+  group_by(TestYear) %>% 
+  summarise(tests = n()) %>% 
+  arrange(TestYear) %>% 
+  mutate(tests = cumsum(tests)) 
+
+cumsum_10 <- measures %>% 
+  filter(survived_ten == T) %>% 
+  arrange(TestYear) %>% 
+  distinct(Name_base, .keep_all = T) %>% 
+  group_by(TestYear) %>% 
+  summarise(tests = n_distinct(DOI)) %>% 
+  mutate(tests = cumsum(tests)) 
+
+cumsums <- bind_rows(
+  "all measures" = cumsum_all,
+  "measures in use\n for => 5 years" = cumsum_5,
+  "measures in use\n for => 10 years" = cumsum_10,
+  .id = "origin"
+  ) %>% 
+  rename(Year = TestYear) %>% 
+  filter(Year <= 2022)
+
+
+ggplot(cumsums, aes(Year, tests, color = origin)) + 
+  geom_line() +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  scale_y_continuous("Cumulative number of measures") +
+  scale_x_continuous("Publication year in APA PsycTests",
+                     limits = c(1993, 2030), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 1))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggrepel::geom_text_repel(
+  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
+  #   size = 4, hjust = 1,
+  #   )  +
+  geom_text_repel(data = cumsums %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ", origin, "\n (n = ", tests, ")")),
+                  segment.square = TRUE,
+                  lineheight = .9,
+                  segment.color = 'grey',
+                  nudge_x = 1.2,
+                  hjust = 0,
+                  na.rm = TRUE) +
+   # theme_minimal(base_size = 13) +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")  +
+    guides(
+    x = guide_axis(cap = "both"), # Cap both ends
+  )
+ggsave("figures/cumsums_survival_measures.pdf", width = 8, height = 4)
+ggsave("figures/cumsums_survival_measures.png", width = 8, height = 4)
+```
+
+
+### by first use in PsycInfo instead of publication year in PsycTests
+```{r}
+cumsum_construct <- constructs %>% 
+  arrange(first_pub_year) %>% 
+  group_by(first_pub_year) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(first_pub_year) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+cumsum_construct_survived_5 <- constructs %>% 
+  filter(survived_five == T) %>% 
+  arrange(first_pub_year) %>% 
+  group_by(first_pub_year) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(first_pub_year) %>% 
+  mutate(constructs = cumsum(constructs)) 
+  
+cumsum_construct_survived_10 <- constructs %>% 
+  filter(survived_ten == T) %>% 
+  arrange(first_pub_year) %>% 
+  group_by(first_pub_year) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(first_pub_year) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+
+
+cumsums <- bind_rows(
+  "all constructs" = cumsum_construct,
+  "constructs in use\n for => 5 years" = cumsum_construct_survived_5,
+  "constructs in use\n for => 10 years" = cumsum_construct_survived_10,
+  .id = "origin"
+  ) %>% 
+  rename(Year = first_pub_year) %>% 
+  filter(Year <= 2022)
+
+
+ggplot(cumsums, aes(Year, constructs, color = origin)) + 
+  geom_line() +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  scale_y_continuous("Cumulative number of constructs") +
+  scale_x_continuous("First usage logged in PsycInfo",
+                     limits = c(1993, 2030), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 1))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggrepel::geom_text_repel(
+  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
+  #   size = 4, hjust = 1,
+  #   )  +
+  geom_text_repel(data = cumsums %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ", origin, "\n (n = ", constructs, ")")),
+                  segment.square = TRUE,
+                  lineheight = .9,
+                  segment.color = 'grey',
+                  nudge_x = 1.2,
+                  hjust = 0,
+                  na.rm = TRUE)+
+   # theme_minimal(base_size = 13) +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")  +
+    guides(
+    x = guide_axis(cap = "both"), # Cap both ends
+  )
+```
+
+### by last use in PsycInfo instead of publication year in PsycTests
+
+```{r}
+cumsum_construct <- constructs %>% 
+  arrange(last_pub_year) %>% 
+  group_by(last_pub_year) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(last_pub_year) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+cumsum_construct_survived_5 <- constructs %>% 
+  filter(survived_five == T) %>% 
+  arrange(last_pub_year) %>% 
+  group_by(last_pub_year) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(last_pub_year) %>% 
+  mutate(constructs = cumsum(constructs)) 
+  
+cumsum_construct_survived_10 <- constructs %>% 
+  filter(survived_ten == T) %>% 
+  arrange(last_pub_year) %>% 
+  group_by(last_pub_year) %>% 
+  summarise(constructs = n_distinct(DOI)) %>% 
+  arrange(last_pub_year) %>% 
+  mutate(constructs = cumsum(constructs)) 
+
+
+
+cumsums <- bind_rows(
+  "all constructs" = cumsum_construct,
+  "constructs in use\n for => 5 years" = cumsum_construct_survived_5,
+  "constructs in use\n for => 10 years" = cumsum_construct_survived_10,
+  .id = "origin"
+  ) %>% 
+  rename(Year = last_pub_year) %>% 
+  filter(Year <= 2022)
+
+
+ggplot(cumsums, aes(Year, constructs, color = origin)) + 
+  geom_line() +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  scale_y_continuous("Cumulative number of constructs") +
+  scale_x_continuous("Last usage logged in PsycInfo",
+                     limits = c(1993, 2030), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 1))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggrepel::geom_text_repel(
+  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
+  #   size = 4, hjust = 1,
+  #   )  +
+  geom_text_repel(data = cumsums %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ", origin, "\n (n = ", constructs, ")")),
+                  segment.square = TRUE,
+                  lineheight = .9,
+                  segment.color = 'grey',
+                  nudge_x = 1.2,
+                  hjust = 0,
+                  na.rm = TRUE)+
+   # theme_minimal(base_size = 13) +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")  +
+    guides(
+    x = guide_axis(cap = "both"), # Cap both ends
+  )
+```
+
+
+## counts
+```{r}
+
+count_construct <- constructs %>% 
+  arrange(TestYear) %>%
+  group_by(TestYear) %>% 
+  summarise(tests = n_distinct(construct)) %>% 
+  arrange(TestYear)
+
+count_construct_5 <- constructs %>% 
+  filter(survived_five == T) %>% 
+  arrange(TestYear) %>%
+  group_by(TestYear) %>% 
+  summarise(tests = n_distinct(construct)) %>% 
+  arrange(TestYear)
+
+count_construct_10 <- constructs %>% 
+  filter(survived_ten == T) %>% 
+  arrange(TestYear) %>%
+  group_by(TestYear) %>% 
+  summarise(tests = n_distinct(construct)) %>% 
+  arrange(TestYear)
+
+counts <- bind_rows(
+  "all constructs" = count_construct,
+  "constructs in use\n for => 5 years" = count_construct_5,
+  "constructs in use\n for => 10 years" = count_construct_10,
+  .id = "origin"
+  ) %>% 
+  rename(Year = TestYear) %>% 
+  filter(Year <= 2022)
+
+
+
+ggplot(counts, aes(Year, tests, color = origin)) + 
+  geom_line() +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  scale_y_continuous("Number of constructs") +
+  scale_x_continuous("Publication year in APA PsycTests",
+                     limits = c(1993, 2030), 
+                     breaks = seq(1993, 2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggrepel::geom_text_repel(
+  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
+  #   size = 4, hjust = 1,
+  #   ) +
+  geom_text_repel(data = counts %>% drop_na() %>% group_by(origin) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ", origin)),
+                  segment.curvature = -0.1,
+                  segment.square = TRUE,
+                  lineheight = .9,
+                  # segment.color = 'grey',
+                  box.padding = 0.1,
+                  point.padding = 0.6,
+                  nudge_x = 1.5,
+                  nudge_y = -15,
+                  force = 1,
+                  hjust = 0,
+                  direction="y",
+                  na.rm = F) +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")
+
+ggsave("figures/counts_survival.pdf", width = 8, height = 4)
+ggsave("figures/counts_survival.png", width = 8, height = 4)
+```
+
+
+
+
+
+
 
 # Robustness checks
 ```{r}
