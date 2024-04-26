@@ -1,7 +1,5 @@
 ---
-title: "2_preprocessing"
-date: '2023-03-20'
-output: html_document
+title: "Preprocessing APA PsycTests"
 ---
 
 https://www.apa.org/pubs/databases/psyctests/field-guide
@@ -11,6 +9,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(groundhog)
 groundhog.library(c("tidyverse", "codebook", "xml2", "kableExtra", "tools"), date = "2024-02-14")
+source("0_functions.R")
+
 ```
 
 ## import records_wide
@@ -20,7 +20,9 @@ load(file = "../sober_rubric/raw_data/records_wide.rda")
 
 
 ## Complexity of columns
+
 I wrote a little summary function to find columns which always consist only of a length 1 list with a single element. These can be losslessly translated to simple vectors.
+
 ```{r}
 col_structures <- records_wide %>% 
   ungroup() %>% 
@@ -43,7 +45,9 @@ col_structures %>% pivot_longer(everything()) %>% filter(value > 1) %>% pull(nam
 
 
 ### hoist variables which are just length 1 lists to turn them into regular characters
+
 Simplify all the simple list columns to character columns.
+
 ```{r}
 records_wide <- records_wide %>% 
   hoist(DOI, DOI = list(1, 1), .remove = FALSE) %>%
@@ -98,6 +102,7 @@ records_wide <- records_wide %>%
 
 
 Set binary fields for "commercial" and "open".
+
 ```{r}
 records_wide <- records_wide %>% 
   mutate(commercial_bin = case_when(
@@ -137,7 +142,9 @@ records_wide$acronym_base <- acronym_base
 
 
 ## Extract source citation DOI
+
 Extract the source citation DOI. I didn't actually run this yet, want to do it with scopus where I can get citations by year.
+
 ```{r}
 # records_wide <- records_wide %>% 
 #   hoist(SourceCitationList, first_source_doi = list(1, "DOI", 1), .remove = FALSE)
@@ -187,6 +194,7 @@ Extract the source citation DOI. I didn't actually run this yet, want to do it w
 
 
 ## Extract Cronbach's Alpha
+
 ```{r}
 records_wide <- records_wide %>% 
   mutate(
@@ -197,6 +205,7 @@ records_wide <- records_wide %>%
 ```
 
 ## Prevalences of validity information
+
 ```{r}
 table(records_wide$FactorAnalysis) %>% sort() %>% tail(2)
 records_wide %>% group_by(InstrumentType) %>% 
@@ -206,38 +215,40 @@ records_wide %>% group_by(InstrumentType) %>%
   arrange(Reliability+FactorAnalysis+Validity) %>% 
   mutate(across(c(Reliability, FactorAnalysis, Validity), ~ round(100 * .)))
 
-records_wide %>% group_by(classification_1) %>% 
-  summarise(Reliability = mean(Reliability!="No reliability indicated."),
-            FactorAnalysis = mean(FactorAnalysis!="No factor analysis indicated." & FactorAnalysis != "This is a unidimensional measure."),
-            Validity = mean(Validity!="No validity indicated.")) %>% arrange(Reliability+FactorAnalysis+Validity) %>% View
+# records_wide %>% group_by(classification_1) %>% 
+#   summarise(Reliability = mean(Reliability!="No reliability indicated."),
+#             FactorAnalysis = mean(FactorAnalysis!="No factor analysis indicated." & FactorAnalysis != "This is a unidimensional measure."),
+#             Validity = mean(Validity!="No validity indicated.")) %>% arrange(Reliability+FactorAnalysis+Validity) %>% View
 ```
 
 ## Sample size
+
 ```{r}
 samplesizes <- records_wide$Reliability %>% str_match_all(regex("\\bn ?= ?(\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
-samplesizes %>% unlist() %>% table() %>% sort()
+# samplesizes %>% unlist() %>% table() %>% sort()
 samplesizes %>% unlist() %>% median()
 samplesizes %>% unlist() %>% length()
-records_wide$Reliability[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
+# records_wide$Reliability[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
 
 samplesizes <- records_wide$Validity %>% str_match_all(regex("\\bn ?= ?(\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
-samplesizes %>% unlist() %>% table()
+# samplesizes %>% unlist() %>% table()
 samplesizes %>% unlist() %>% median()
-records_wide$Validity[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
+# records_wide$Validity[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
 
 samplesizes <- records_wide$FactorAnalysis %>% str_match_all(regex("\\bn ?= ?(\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
-samplesizes %>% unlist() %>% table()
+# samplesizes %>% unlist() %>% table()
 samplesizes %>% unlist() %>% median()
-records_wide$FactorAnalysis[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
+# records_wide$FactorAnalysis[- (samplesizes %>% map_dbl(~ .[1]) %>% is.na() %>% which())]
 ```
 
 
 ## Number of factors
+
 ```{r}
 records_wide$number_of_factors <- str_match_all(records_wide$FactorAnalysis, regex("(\\d+)(-| )factor", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
 records_wide$number_of_factors_subscales <- str_match_all(records_wide$FactorsAndSubscales, ";") %>% map_dbl(~ length(.)) + 1
 records_wide$number_of_factors_subscales[is.na(records_wide$FactorsAndSubscales)] <- NA_real_
-records_wide$FactorsAndSubscales %>% na.omit()
+# records_wide$FactorsAndSubscales %>% na.omit()
 unlist(records_wide$number_of_factors) %>% table() %>% sort()
 unlist(records_wide$number_of_factors_subscales) %>% table() %>% sort()
 ggplot(records_wide, aes(number_of_factors_subscales)) + geom_bar(aes(y= ..count..), stat = 'count') + scale_x_continuous(breaks = 1:20)
@@ -246,15 +257,16 @@ cor(records_wide$number_of_factors_subscales, records_wide$number_of_factors %>%
 
 
 ## Number of items
+
 ```{r}
 records_wide$NumberOfTestItems <- str_replace_all(records_wide$NumberOfTestItems, "[[:space:]]+", " ")
 item_numbers <- records_wide$NumberOfTestItems %>% str_match_all(regex("(\\d+)( |-)(total |primary |main |final )?(item|question)s?( ?-?measure)?", ignore_case = TRUE)) %>% map(~ as.numeric(.[,2]))
-table(unlist(item_numbers))
+# table(unlist(item_numbers))
 consists_of_numbers <- records_wide$NumberOfTestItems %>% str_match_all(regex("(comprises|consists of|contains|composed of|comprised of|) (\\d+)", ignore_case = TRUE)) %>% map(~ as.numeric(.[,3]))
 
 just_numbers <- str_match(records_wide$NumberOfTestItems,pattern = "^(\\d+) ?$")[,2] %>% as.numeric()
 
-table(unlist(item_numbers))
+median(unlist(item_numbers))
 
 numbers <- records_wide$NumberOfTestItems %>% str_match_all("(\\d+)( |-)?") %>% map(~ as.numeric(.[,2]))
 
@@ -311,20 +323,20 @@ words_without_item <- case_when(
   str_detect(records_wide$NumberOfTestItems, regex("fifty", ignore_case = TRUE)) ~ 50,
   TRUE ~ NA_real_)
 
-table(words)
-table(words_without_item[which(words_without_item!=words)])
+# table(words)
+# table(words_without_item[which(words_without_item!=words)])
 
-records_wide$NumberOfTestItems[!is.na(words)]
-records_wide$NumberOfTestItems[which(item_numbers %>% map(~ .[1]) == 1192)]
-records_wide$NumberOfTestItems[which(item_numbers %>% map(~ length(.)) > 1)]
+# records_wide$NumberOfTestItems[!is.na(words)]
+# records_wide$NumberOfTestItems[which(item_numbers %>% map(~ .[1]) == 1192)]
+# records_wide$NumberOfTestItems[which(item_numbers %>% map(~ length(.)) > 1)]
 
-table(records_wide$NumberOfTestItems) %>% sort() %>% tail(20)
-records_wide$NumberOfTestItems[which(!is.na(numbers %>% map(~ .[1])) & 
-                                       is.na(item_numbers %>% map(~ .[1])) & 
-                                       is.na(consists_of_numbers %>% map(~ .[1])) &
-                                       is.na(just_numbers %>% map(~ .[1])) &
-                                       is.na(words)
-                                     )]
+# table(records_wide$NumberOfTestItems) %>% sort() %>% tail(20)
+# records_wide$NumberOfTestItems[which(!is.na(numbers %>% map(~ .[1])) & 
+#                                        is.na(item_numbers %>% map(~ .[1])) & 
+#                                        is.na(consists_of_numbers %>% map(~ .[1])) &
+#                                        is.na(just_numbers %>% map(~ .[1])) &
+#                                        is.na(words)
+#                                      )]
 
 records_wide$NumberOfTestItems[which(!is.na(records_wide$NumberOfTestItems) & is.na(numbers %>% map(~ .[1])) & is.na(item_numbers %>% map(~ .[1])) & is.na(words))]
 unlist(numbers) %>% table() %>% qplot() +scale_x_sqrt(limits = c(1,30))
@@ -343,9 +355,9 @@ xtabs(~ is.na(good_guess) + is.na(records_wide$NumberOfTestItems))
 records_wide$number_of_test_items <- good_guess
 records_wide$number_of_test_items_best_guess <- best_guess
 records_wide$number_of_test_items_potential_subscales <- coalesce(item_numbers %>% map_dbl(~ length(.)), consists_of_numbers %>% map_dbl(~ length(.)), numbers %>% map_dbl(~ length(.)), 1) 
-records_wide$NumberOfTestItems[which(!is.na(records_wide$NumberOfTestItems) & is.na(best_guess))]
+# records_wide$NumberOfTestItems[which(!is.na(records_wide$NumberOfTestItems) & is.na(best_guess))]
 qplot(records_wide$number_of_test_items,binwidth = 1) + xlim(0,200) + theme_bw()
-table(records_wide$number_of_test_items) %>% sort()
+# table(records_wide$number_of_test_items) %>% sort()
 
 cor(records_wide$first_reliability_match, records_wide$number_of_test_items, use = 'p')
 ggplot(records_wide %>% filter(number_of_test_items <= 40, number_of_test_items > 0), aes(factor(number_of_test_items), first_reliability_match)) + geom_pointrange(fun.data = "mean_se", stat = "summary") + theme_bw()
@@ -559,7 +571,6 @@ n_distinct(records_wide$original_test_DOI)
 
 ## Get basis name without version/abbreviation/language
 ```{r}
-source("0_function_name_base.R")
 records_wide$Name_base <- get_name_base(records_wide$Name)
 # reduction
 n_distinct(records_wide$Name) - n_distinct(records_wide$Name_base)
@@ -570,8 +581,8 @@ records_wide %>% group_by(test_type) %>% summarise(mismatch = sum(Name != Name_b
 
 
 ```{r}
-records_wide %>% filter(test_type != "Original", is.na(original_DOI)) %>% select(DOI, Name_base, Name) %>% 
-  left_join(records_wide %>% filter(test_type == "Original") %>% select(Name_base = Name, original_DOI_by_name = DOI), by = "Name_base") %>% View
+# records_wide %>% filter(test_type != "Original", is.na(original_DOI)) %>% select(DOI, Name_base, Name) %>% 
+#   left_join(records_wide %>% filter(test_type == "Original") %>% select(Name_base = Name, original_DOI_by_name = DOI), by = "Name_base") %>% View
 
 matches_by_doi <- records_wide %>% 
   select(original_DOI, Name, Name_base) %>% 
@@ -579,9 +590,9 @@ matches_by_doi <- records_wide %>%
                select(original_DOI = DOI, original_name = Name, original_Name_base = Name_base))
 
 nrow(matches_by_doi)
-matches_by_doi %>% filter(original_name == Name_base)
-matches_by_doi %>% filter(original_name != Name_base) %>% View()
-matches_by_doi %>% filter(original_name != Name_base) %>% filter(str_detect(Name_base, " for "), str_match(Name_base, "^(.+) for .+$")[,2] == original_name) %>% pull(Name_base) %>% str_extract(" for .+$") %>% table() %>% sort() %>% names() %>% dput() 
+# matches_by_doi %>% filter(original_name == Name_base)
+# matches_by_doi %>% filter(original_name != Name_base) %>% View()
+# matches_by_doi %>% filter(original_name != Name_base) %>% filter(str_detect(Name_base, " for "), str_match(Name_base, "^(.+) for .+$")[,2] == original_name) %>% pull(Name_base) %>% str_extract(" for .+$") %>% table() %>% sort() %>% names() %>% dput() 
 
 unmatched_by_name <- records_wide %>% filter(is.na(original_DOI), test_type != "Original" | Name != Name_base) %>% select(test_type, DOI, Name = Name_base, NameOC_1 = NameOC) %>% anti_join(records_wide %>% filter(test_type == "Original") %>% select(Name)) 
 nrow(unmatched_by_name)

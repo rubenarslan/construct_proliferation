@@ -1,12 +1,5 @@
 ---
-title: "R Notebook"
-output:
-  html_document:
-    df_print: paged
-    toc: true
-    toc_float: true
-editor_options:
-  chunk_output_type: inline
+title: "Preprocessing APA PsycInfo"
 ---
 
 ```{r}

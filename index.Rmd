@@ -1,16 +1,15 @@
 ---
-title: "Construct proliferation"
-author: "Ruben Arslan"
-date: "2023-03-31"
-output: 
-  html_document:
-    toc: true
-    toc_float: true
-    code_folding: "hide"
-editor_options: 
-  chunk_output_type: inline
+title: "A fragmented field"
+output:
+  distill::distill_article:
+    toc: false
 ---
 
+```{css, echo=FALSE}
+d-title h1 {
+    font-size: 20px;
+  }
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F)
@@ -21,249 +20,118 @@ groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "read
                   date = "2024-02-24")
 theme_set(theme_minimal(base_size = 14))
 
-calc_norm_entropy <- function(n) {
-  n <- n[n>0]
-  entropy::entropy(n)/log(length(n))
-}
-```
+source("0_functions.R")
 
-```{r}
 psyctests_info <- readRDS("../sober_rubric/raw_data/psyctests_info.rds")
-```
+records_wide <- readRDS("../sober_rubric/raw_data/preprocessed_records.rds")
+psyctests_info <- psyctests_info %>% 
+  left_join(records_wide %>% select(DOI, Acronym = first_acronym), by = "DOI") %>% 
+  mutate(shortName = coalesce(Acronym, Name))
 
-In the following, you see treemaps. In these plots, the area per test is proportional to its usage frequency. In the plots, tests which have been rarely used according to APA PsycInfo are grouped, mainly so that the individually small tiles are still visible despite their low frequency. 
-
-By comparing across the subdisciplines, we can see what higher and lower entropy fields look like visually. High entropy is seen as great fragmentation, i.e. there are many tiles of similar size and the "used 1-5 times" and "used 6-20 times" tiles are prominent. Lower fragmentation is apparent when some large tiles reflecting individual measures, such as the Beck Depression Inventory, dominate a field.
-
-```{r}
 tests <- psyctests_info %>% 
-  group_by(DOI, Name) %>% 
+  group_by(DOI, shortName, Name) %>%  
   summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 50 ~ "",
-                    n > 20 ~ "used 21-50 times",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times"))
+            parent = "") %>% 
+  ungroup() %>% 
+  arrange(runif(n()))
+
 entropy = entropy(tests$n)
 norm_entropy = calc_norm_entropy(tests$n)
-
-tests <- bind_rows(tests, 
-                   tests %>% filter(parent != "") %>% 
-                     ungroup() %>% 
-                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
 ```
 
 
-## Overall
-### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
-```{r, out.width='100%'}
-fig <- plot_ly(
-  type='treemap',
-  labels = tests$Name,
-  parents = tests$parent,
-  values= tests$n,
-  text = tests$DOI,
-  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
-  hoverinfo="label+value+text",
-  textinfo="label+value")
-
-fig %>% layout(
-  autosize = TRUE,
-  margin = list(l = 0, t = 0, r = 0 , b = 0)
-)
+```{r layout='l-screen-inset',echo=FALSE,out.width='100%',fig.cap = sprintf("Treemap showing fragmentation across subfields. Normalized Shannon entropy $\\eta(X) = %.2f$ <br>Click image to open interactive plot.", norm_entropy),fig.link="3_fragmentation_overall.html"}
+knitr::include_graphics("figures/treemap_overall.png")
 ```
+
+The plots you see here are called treemap plots. In such plots, the area per test is proportional to its usage frequency. The images here are static. If you click them, you
+can view an interactive plot (give it some time to load) that will allow you to see how often each measure has been used according to APA PsycInfo, and look up the measure in APA PsycTests.
+
+By comparing across the subdisciplines, we can see what higher and lower entropy fields look like visually. High entropy is seen as great fragmentation, i.e. there are many small tiles and many tiles of similar size. Lower fragmentation is apparent when some large tiles reflecting individual measures, such as the Beck Depression Inventory, dominate a field.
 
 
 ```{r}
 tests <- psyctests_info %>% 
   filter(subdiscipline_1 == "Personality and Social Psychology") %>% 
-  group_by(DOI, Name) %>% 
+  group_by(DOI, shortName, Name) %>% 
   summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 20 ~ "",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times"))
-entropy = entropy(tests$n)
+            parent = "")
 norm_entropy = calc_norm_entropy(tests$n)
-
-tests <- bind_rows(tests, 
-                   tests %>% filter(parent != "") %>% 
-                     ungroup() %>% 
-                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
 ```
 
 
 ## Personality and Social Psychology
-### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
-```{r, out.width='100%'}
-fig <- plot_ly(
-  type='treemap',
-  labels = tests$Name,
-  parents = tests$parent,
-  values= tests$n,
-  text = tests$DOI,
-  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
-  hoverinfo="label+value+text",
-  textinfo="label+value")
-
-fig %>% layout(
-  autosize = TRUE,
-  margin = list(l = 0, t = 0, r = 0 , b = 0)
-)
+```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across personality and social psychology. Click image to open interactive plot.", fig.link="3_fragmentation_personality.html"}
+knitr::include_graphics("figures/treemap_personality.png")
 ```
 
 
 ```{r}
 tests <- psyctests_info %>%
   filter(subdiscipline_1 == "Industrial/Organizational Psychology") %>%
-  group_by(DOI, Name) %>%
+  group_by(DOI, shortName, Name) %>%
   summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 20 ~ "",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times"))
-entropy = entropy(tests$n)
-norm_entropy = calc_norm_entropy(tests$n)
+            parent = "")
 
-tests <- bind_rows(tests,
-                   tests %>% filter(parent != "") %>%
-                     ungroup() %>%
-                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+norm_entropy = calc_norm_entropy(tests$n)
 ```
 
 
 ## Industrial/Organizational Psychology
 ### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
-```{r, out.width='100%'}
-fig <- plot_ly(
-  type='treemap',
-  labels = tests$Name,
-  parents = tests$parent,
-  values= tests$n,
-  text = tests$DOI,
-  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
-  hoverinfo="label+value+text",
-  textinfo="label+value")
-
-fig %>% layout(
-  autosize = TRUE,
-  margin = list(l = 0, t = 0, r = 0 , b = 0)
-)
+```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across industrial/organizational psychology. Click image to open interactive plot.", fig.link="3_fragmentation_io.html"}
+knitr::include_graphics("figures/treemap_io.png")
 ```
 
 
 ```{r}
 tests <- psyctests_info %>%
   filter(subdiscipline_1 == "Health and Clinical Psychology") %>%
-  group_by(DOI, Name) %>%
+  group_by(DOI, shortName, Name) %>%
   summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 20 ~ "",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times"))
-entropy = entropy(tests$n)
-norm_entropy = calc_norm_entropy(tests$n)
+            parent = "")
 
-tests <- bind_rows(tests,
-                   tests %>% filter(parent != "") %>%
-                     ungroup() %>%
-                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+norm_entropy = calc_norm_entropy(tests$n)
 ```
 
 
 ## Health and Clinical Psychology
 ### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
-```{r, out.width='100%'}
-fig <- plot_ly(
-  type='treemap',
-  labels = tests$Name,
-  parents = tests$parent,
-  values= tests$n,
-  text = tests$DOI,
-  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
-  hoverinfo="label+value+text",
-  textinfo="label+value")
-
-fig %>% layout(
-  autosize = TRUE,
-  margin = list(l = 0, t = 0, r = 0 , b = 0)
-)
+```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across Health and Clinical Psychology. Click image to open interactive plot.", fig.link="3_fragmentation_clinical.html"}
+knitr::include_graphics("figures/treemap_clinical.png")
 ```
 
 
 ```{r}
 tests <- psyctests_info %>%
   filter(subdiscipline_1 == "Educational and Developmental Psychology") %>%
-  group_by(DOI, Name) %>%
+  group_by(DOI, shortName, Name) %>%
   summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 20 ~ "",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times"))
-entropy = entropy(tests$n)
-norm_entropy = calc_norm_entropy(tests$n)
+            parent = "")
 
-tests <- bind_rows(tests,
-                   tests %>% filter(parent != "") %>%
-                     ungroup() %>%
-                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+norm_entropy = calc_norm_entropy(tests$n)
 ```
 
 
 ## Educational and Developmental Psychology
 ### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
-```{r, out.width='100%'}
-fig <- plot_ly(
-  type='treemap',
-  labels = tests$Name,
-  parents = tests$parent,
-  values= tests$n,
-  text = tests$DOI,
-  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
-  hoverinfo="label+value+text",
-  textinfo="label+value")
-
-fig %>% layout(
-  autosize = TRUE,
-  margin = list(l = 0, t = 0, r = 0 , b = 0)
-)
+```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across Educational and Developmental Psychology. Click image to open interactive plot.", fig.link="3_fragmentation_educational.html"}
+knitr::include_graphics("figures/treemap_educational.png")
 ```
 
 ```{r}
 tests <- psyctests_info %>%
   filter(subdiscipline_1 == "Cognitive Psychology") %>%
-  group_by(DOI, Name) %>%
+  group_by(DOI, shortName, Name) %>%
   summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 20 ~ "",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times"))
-entropy = entropy(tests$n)
-norm_entropy = calc_norm_entropy(tests$n)
+            parent = "")
 
-tests <- bind_rows(tests,
-                   tests %>% filter(parent != "") %>%
-                     ungroup() %>%
-                     select(Name = parent) %>% distinct() %>% mutate(n=0, parent = ""))
+norm_entropy = calc_norm_entropy(tests$n)
 ```
 
 
 ## Cognitive Psychology
-### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
-```{r, out.width='100%'}
-fig <- plot_ly(
-  type='treemap',
-  labels = tests$Name,
-  parents = tests$parent,
-  values= tests$n,
-  text = tests$DOI,
-  tiling = list(packing = "squarify", squarifyratio = (1 + sqrt(5)) / 2),
-  hoverinfo="label+value+text",
-  textinfo="label+value")
-
-fig %>% layout(
-  autosize = TRUE,
-  margin = list(l = 0, t = 0, r = 0 , b = 0)
-)
+```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across Cognitive Psychology Click image to open interactive plot.", fig.link="3_fragmentation_cognitive.html"}
+knitr::include_graphics("figures/treemap_cognitive.png")
 ```
 

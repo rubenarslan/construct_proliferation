@@ -1,14 +1,5 @@
 ---
-title: "Construct proliferation"
-author: "Ruben Arslan"
-date: "`r Sys.Date()`"
-output: 
-  html_document:
-    toc: true
-    toc_float: true
-    code_folding: "hide"
-editor_options: 
-  chunk_output_type: inline
+title: "Construct proliferation: Changes over time"
 ---
 
 ```{r setup, include=FALSE}
@@ -23,10 +14,7 @@ theme_set(theme_minimal(base_size = 13))
 colors <- RColorBrewer::brewer.pal(3, name = "Dark2")
 names(colors) <- c("all", "novel", "constructs")
 
-calc_norm_entropy <- function(n) {
-  n <- n[n>0]
-  entropy::entropy(n)/log(length(n))
-}
+source("0_functions.R")
 ```
 
 
@@ -1265,7 +1253,6 @@ min(constructs$survival, na.rm = T)
 ```
 
 ```{r}
-
 measures <- psyctests_info %>% 
      filter(between(Year, 1993, 2022))  %>% 
      mutate(survival = last_pub_year - first_pub_year,

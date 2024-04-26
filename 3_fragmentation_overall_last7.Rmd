@@ -1,0 +1,102 @@
+---
+title: "Construct proliferation across fields: last 7 years"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F)
+
+library(groundhog)
+groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "readr",
+                    "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes"), 
+                  date = "2024-02-24")
+theme_set(theme_minimal(base_size = 14))
+
+source("0_functions.R")
+
+set.seed(20191005)
+if(file.exists("palette.rds")) {
+  pal <- readRDS("palette.rds")
+} else {
+  pal <- Polychrome::createPalette(500, "#222222", target="normal")
+  saveRDS(pal, "palette.rds")
+}
+
+# reticulate::conda_install('r-reticulate-test', 'python-kaleido')
+# reticulate::conda_install('r-reticulate-test', 'plotly', channel = 'plotly')
+reticulate::use_miniconda('r-reticulate-test')
+
+```
+
+
+```{css, echo=FALSE}
+.js-plotly-plot .plotly svg a { 
+  fill: inherit !important 
+}
+```
+
+```{js, echo=FALSE}
+document.addEventListener("DOMContentLoaded", function() {
+    const plotElements = document.querySelectorAll('.plotly.html-widget'); // Gets all Plotly widgets
+    const firstPlot = plotElements[0]; // Gets the first Plotly plot
+
+    Plotly.update(firstPlot).then(gd => {
+        gd.on('plotly_treemapclick', () => false); // Example: removing treemap click event
+    });
+});
+```
+
+```{r}
+records_wide <- readRDS("../sober_rubric/raw_data/preprocessed_records.rds")
+psyctests_info <- readRDS("../sober_rubric/raw_data/psyctests_info.rds")
+psyctests_info <- psyctests_info %>% 
+  left_join(records_wide %>% select(DOI, Acronym = first_acronym), by = "DOI") %>% 
+  mutate(shortName = coalesce(Acronym, Name)) %>% 
+  mutate(shortName = case_when(
+    Name == "trail making test" ~ "TMT",
+    Name == "alcohol use disorders identification test" ~ "AUDIT",
+    Name == "perceived stress scale" ~ "PSS",
+    Name == "perceived stress scale" ~ "PSS",
+    Name == "beck anxiety inventory" ~ "BAI",
+    Name == "positive and negative affect scale" ~ "PANAS-B",
+    Name == "center for epidemiological studies depression scale" ~ "CESD",
+    Name == "stroop color and word test" ~ "SCWT",
+    Name == "clinician-administered ptsd scale" ~ "CAPS",
+    shortName == "WHO WMH-CIDI" ~ "WMH-CIDI",
+    Name == "barthel index" ~ "ADL",
+    Name == "stroop color and word test" ~ "SCWT",
+    TRUE ~ shortName
+  ))
+```
+
+The following plot is called a treemap. In such plots, the area per test is proportional to its usage frequency.
+
+By comparing across the subdisciplines, we can see what higher and lower entropy fields look like visually. High entropy is seen as great fragmentation, i.e. there are many small tiles and many tiles of similar size. Lower fragmentation is apparent when some large tiles reflecting individual measures, such as the Beck Depression Inventory, dominate a field.
+
+```{r}
+tests <- psyctests_info %>% 
+  filter(Year > 2016) %>% 
+  group_by(DOI, shortName, Name) %>%  
+  summarise(n = sum(usage_count, na.rm = T),
+            parent = "") %>% 
+  ungroup() %>% 
+  arrange(runif(n()))
+
+# tests <- tests %>% sample_n(1000)
+entropy = entropy(tests$n)
+norm_entropy = calc_norm_entropy(tests$n)
+```
+
+
+## Overall
+### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+
+```{r layout='l-screen-inset',  out.width='100%',   out.height='800px'}
+p <- treemap_graph(tests, colors = pal)
+
+save_image(p, "figures/treemap_overall_last_7.png", width = 1400, height = 700, 
+           scale = 5)
+
+p
+```
+

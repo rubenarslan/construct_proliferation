@@ -1,7 +1,7 @@
-name: Construct Proliferation
+name: A fragmented field
 output_dir: docs
 navbar:
-  title: Construct Proliferation
+  title: A fragmented field
   left:
   - text: Overview
     href: index.html
@@ -18,9 +18,11 @@ navbar:
     icon: fa-github
     href: https://github.com/rubenarslan/construct_proliferation
 output:
-  html_document:
-    theme: paper
-    code_folding: hide
+  distill::distill_article:
+    css: style.css
+    toc: true
+    toc_float: true
+    code_folding: "Show code"
     df_print: tibble
     code_download: yes
     highlight: zenburn
@@ -28,4 +30,3 @@ output:
     self_contained: no
 exclude:
 - ignore
-- figures

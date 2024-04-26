@@ -181,7 +181,8 @@ treemap_graph <- function(tests, colors = c("#69D2E7", "#A7DBD8", "#E0E4CC", "#F
                   squarifyratio = (1 + sqrt(5)) / 2),
     # insidetextfont = list(size = I(50), color = "green", mode = "hide"),
     hoverinfo="label+value+text+percent root",
-    textinfo="label")
+    textinfo="label") %>%
+    plotly::config(displaylogo = FALSE, displayModeBar = F)
 
   fig %>% plotly::layout(
     autosize = TRUE,
