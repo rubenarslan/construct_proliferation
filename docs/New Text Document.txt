@@ -1,9 +1,0 @@
-YEARS AND FILTERING IN GENERAL
-COPIED CHUNKS AND EDITED
-LABELLING
-CHECK PLOTS AND LABELS IN DETAIL
-CHECK GGSAVE
-check pdf sizes
-add chunk figure sizes 
-grid lines
-check consistency of axes etc..
