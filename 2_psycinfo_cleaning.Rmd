@@ -19,7 +19,7 @@ psycinfo_scrape_by_journal <- read_tsv('../sober_rubric/raw_data/merged_table_al
 ## get our second scrape (by test DOI and year)
 overview <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_clean_overview_table_1.tsv")
 byyear <- readr::read_tsv("../sober_rubric/raw_data/20230617_ebsco_scrape_table_years_1.tsv")
-byyear %>% group_by(DOI) %>% summarise(Hits = sum(Hits, na.rm=T)) %>% pull(Hits) %>% table()
+# byyear %>% group_by(DOI) %>% summarise(Hits = sum(Hits, na.rm=T)) %>% pull(Hits) %>% table()
 
 one_hit_wonders <- overview %>% filter(Hits == 1) %>% 
   mutate(Year = first_pub_year) %>% 
@@ -74,7 +74,7 @@ psycinfo %>%  mutate(diff = hits_scrape_2 - hits_scrape_1) %>% pull(diff) %>%  m
 # psycinfo %>% filter(hits_scrape_1 > hits_scrape_2) %>% select(DOI, Year, name_psycinfo, NameOC, hits_scrape_1, hits_scrape_2) %>% mutate(diff = hits_scrape_2 - hits_scrape_1) %>% arrange(diff) %>% View()
 
 psycinfo %>% filter(hits_scrape_1 < hits_scrape_2) %>% nrow()
-psycinfo %>%  mutate(diff = hits_scrape_2 - hits_scrape_1) %>% pull(diff) %>% table() %>% sort()
+# psycinfo %>%  mutate(diff = hits_scrape_2 - hits_scrape_1) %>% pull(diff) %>% table() %>% sort()
 
 # psycinfo %>% filter(hits_scrape_1 < hits_scrape_2) %>% select(DOI, Year, name_psycinfo, NameOC, hits_scrape_1, hits_scrape_2) %>% mutate(diff = hits_scrape_2 - hits_scrape_1) %>% arrange(diff) %>% View()
 ```

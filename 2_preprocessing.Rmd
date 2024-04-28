@@ -338,7 +338,7 @@ words_without_item <- case_when(
 #                                        is.na(words)
 #                                      )]
 
-records_wide$NumberOfTestItems[which(!is.na(records_wide$NumberOfTestItems) & is.na(numbers %>% map(~ .[1])) & is.na(item_numbers %>% map(~ .[1])) & is.na(words))]
+# records_wide$NumberOfTestItems[which(!is.na(records_wide$NumberOfTestItems) & is.na(numbers %>% map(~ .[1])) & is.na(item_numbers %>% map(~ .[1])) & is.na(words))]
 unlist(numbers) %>% table() %>% qplot() +scale_x_sqrt(limits = c(1,30))
 
 good_guess <- coalesce(just_numbers, 

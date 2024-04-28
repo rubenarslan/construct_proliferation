@@ -44,7 +44,9 @@ norm_entropy = calc_norm_entropy(tests$n)
 knitr::include_graphics("figures/treemap_overall.png")
 ```
 
-The plots you see here are called treemap plots. In such plots, the area per test is proportional to its usage frequency. The images here are static. If you click them, you
+This online supplement accompanies our [preprint](https://osf.io/preprints/psyarxiv/b4muj). The main figures for the preprint are [generated here](4_proliferation.html).
+
+The plots you see here on this page are called treemap plots. In such plots, the area per test is proportional to its usage frequency. The images here are static. If you click them, you
 can view an interactive plot (give it some time to load) that will allow you to see how often each measure has been used according to APA PsycInfo, and look up the measure in APA PsycTests.
 
 By comparing across the subdisciplines, we can see what higher and lower entropy fields look like visually. High entropy is seen as great fragmentation, i.e. there are many small tiles and many tiles of similar size. Lower fragmentation is apparent when some large tiles reflecting individual measures, such as the Beck Depression Inventory, dominate a field.

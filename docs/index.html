@@ -2190,7 +2190,8 @@ Figure 1: Treemap showing fragmentation across subfields. Normalized Shannon ent
 </p>
 </div>
 </div>
-<p>The plots you see here are called treemap plots. In such plots, the area per test is proportional to its usage frequency. The images here are static. If you click them, you
+<p>This online supplement accompanies our <a href="https://osf.io/preprints/psyarxiv/b4muj">preprint</a>. The main figures for the preprint are <a href="4_proliferation.html">generated here</a>.</p>
+<p>The plots you see here on this page are called treemap plots. In such plots, the area per test is proportional to its usage frequency. The images here are static. If you click them, you
 can view an interactive plot (give it some time to load) that will allow you to see how often each measure has been used according to APA PsycInfo, and look up the measure in APA PsycTests.</p>
 <p>By comparing across the subdisciplines, we can see what higher and lower entropy fields look like visually. High entropy is seen as great fragmentation, i.e. there are many small tiles and many tiles of similar size. Lower fragmentation is apparent when some large tiles reflecting individual measures, such as the Beck Depression Inventory, dominate a field.</p>
 <div class="layout-chunk" data-layout="l-body">
@@ -2199,10 +2200,10 @@ can view an interactive plot (give it some time to load) that will allow you to 
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span> </span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Personality and Social Psychology"</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span> </span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/group_by.html'>group_by</a></span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span> </span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/summarise.html'>summarise</a></span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'>%&gt;%</span> </span>
+<span>  <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Personality and Social Psychology"</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
+<span>  <span class='fu'>group_by</span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
+<span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
 </div>
@@ -2231,10 +2232,10 @@ Figure 2: Treemap showing fragmentation across personality and social psychology
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Industrial/Organizational Psychology"</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/group_by.html'>group_by</a></span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/summarise.html'>summarise</a></span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Industrial/Organizational Psychology"</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>group_by</span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
 <span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
@@ -2265,10 +2266,10 @@ Figure 3: Treemap showing fragmentation across industrial/organizational psychol
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Health and Clinical Psychology"</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/group_by.html'>group_by</a></span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/summarise.html'>summarise</a></span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Health and Clinical Psychology"</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>group_by</span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
 <span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
@@ -2299,10 +2300,10 @@ Figure 4: Treemap showing fragmentation across Health and Clinical Psychology. C
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Educational and Developmental Psychology"</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/group_by.html'>group_by</a></span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/summarise.html'>summarise</a></span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Educational and Developmental Psychology"</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>group_by</span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
 <span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
@@ -2333,10 +2334,10 @@ Figure 5: Treemap showing fragmentation across Educational and Developmental Psy
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Cognitive Psychology"</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/group_by.html'>group_by</a></span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'><a href='https://magrittr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span></span>
-<span>  <span class='fu'><a href='https://dplyr.tidyverse.org/reference/summarise.html'>summarise</a></span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>tests</span> <span class='op'>&lt;-</span> <span class='va'>psyctests_info</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>subdiscipline_1</span> <span class='op'>==</span> <span class='st'>"Cognitive Psychology"</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>group_by</span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'>%&gt;%</span></span>
+<span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
 <span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>

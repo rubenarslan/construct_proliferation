@@ -3,7 +3,7 @@ title: "Construct proliferation: Changes over time"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, error = T, warning = T, message = T, fig.width = 8, fig.height = 4)
+knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F, fig.width = 8, fig.height = 4)
 
 library(groundhog)
 groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "readr",
@@ -1770,6 +1770,7 @@ ggsave("figures/cumsum_all_vs_first.png", width = 8, height = 4)
 
 For some 20% of tests, two or more constructs were coded. In most plots, we simply use
 the first construct for each test.
+
 ```{r}
 records_wide <- records_wide %>% 
   rowwise() %>% 
@@ -1867,7 +1868,9 @@ ggsave("figures/entropy_all_vs_first.png", width = 8, height = 4)
 ```
 
 ## Unbiased estimators of Shannon entropy
+
 Does not make much of a difference.
+
 ```{r}
 byorig_entropy_by_year <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
