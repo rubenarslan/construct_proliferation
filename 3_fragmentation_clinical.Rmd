@@ -8,7 +8,7 @@ knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F)
 
 library(groundhog)
 groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "readr",
-                    "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes"), 
+                    "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes", "hillR"), 
                   date = "2024-02-24")
 theme_set(theme_minimal(base_size = 14))
 
@@ -81,13 +81,18 @@ tests <- psyctests_info %>%
             parent = "") %>% 
   ungroup() %>% 
   arrange(runif(n()))
+
+calc_hill_shannon = function(n) {
+    hillR::hill_taxa(n, q = 1)
+}
+
 entropy = entropy(tests$n)
-norm_entropy = calc_norm_entropy(tests$n)
+hill_shannon = calc_hill_shannon(tests$n)
 ```
 
 
 ## Health and Clinical Psychology
-### Normalized Shannon entropy `r sprintf("$\\eta(X) = %.2f$", norm_entropy)`
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$\\eta(X) = %.0f$", hill_shannon)`
 ```{r layout='l-screen-inset',  out.width='100%',   out.height='700px'}
 p <- treemap_graph(tests, colors = pal)
 

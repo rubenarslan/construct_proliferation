@@ -885,9 +885,9 @@ counts_construct_wide <- counts_construct %>%
 
 ### 3. Run iNEXT for Coverage-Based Comparison
 # Here, we set q = 0 (species richness). You can set q = 1 for Hill–Shannon or q = 2 for Hill–Simpson.
-inext_all <- iNEXT(counts_all_wide %>% tibble::column_to_rownames("Test"), q = 0, datatype = "abundance")
-inext_lumped <- iNEXT(counts_lumped_wide %>% tibble::column_to_rownames("Test"), q = c(0,1, 2), datatype = "abundance")
-inext_constructs <- iNEXT(counts_construct_wide %>% tibble::column_to_rownames("Test"), 0, datatype = "abundance")
+inext_all <- iNEXT(counts_all_wide %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
+inext_lumped <- iNEXT(counts_lumped_wide %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
+inext_constructs <- iNEXT(counts_construct_wide %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
 # inext_all <- iNEXT(abundance_list_all, q = 0, datatype = "abundance")
 
 
@@ -918,7 +918,7 @@ ggplot(inext_combined, aes(x = Year, y = Estimator, ymin = LCL, ymax = UCL, grou
   facet_grid(Diversity ~ ., scales = "free_y") +
   theme_minimal(base_size = 14) +
   labs(title = "Coverage-Standardized Diversity Metrics Across Years",
-       subtitle = "Columns: Count type; Rows: Diversity metrics (Richness, Shannon, Simpson, True Diversity)",
+       subtitle = "Columns: Count type; Rows: Diversity metrics (Richness, Hill-Shannon, Hill-Simpson)",
        x = "Year",
        y = "Diversity Value") +
   scale_color_brewer(palette = "Set1")
@@ -991,16 +991,62 @@ asy_est_all_sub <- psyctests_info %>%
   }) %>% 
   ungroup()
 
-# Plot the asymptotic estimates
-ggplot(asy_est_all_sub, aes(x = as.numeric(Assemblage), y = Estimator, color = subdiscipline)) +
-  geom_smooth(stat = "identity", size = 0.9) +
-  scale_y_continuous("Asymptotic Hill–Shannon Diversity") +
-  scale_x_continuous("Year", limits = c(1993, 2030)) +
-  theme_minimal(base_size = 14) +
-  labs(title = "Asymptotic Hill–Shannon Diversity (All Measures)",
-       subtitle = "Estimates by subdiscipline using iNEXT")
-ggsave("figures/asy_entropy_subdiscipline_all.png", width = 8, height = 4)
+asy_est_all_sub <- asy_est_all_sub %>% rename(Year = Assemblage)
+asy_est_all_sub %>% 
+  ggplot(., aes(x = as.numeric(Year), y = Estimator, color = subdiscipline)) +
+  geom_line(size = 0.7) +
+  scale_y_continuous("Fragmentation index") +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2033), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 7))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggtitle(str_c(n_distinct(tests_by_year$Test), " measures tracked in PsycInfo")) +
+ # geom_text_repel(aes(label = gsub("^.*$", " ", subdiscipline_1)), # This will force the correct position of the link's right end.
+ #                  data = entropy_by_year %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
+ #                  segment.curvature = -0.1,
+ #                  segment.square = TRUE,
+ #                  segment.color = 'grey',
+ #                  box.padding = 0.1,
+ #                  point.padding = 0.6,
+ #                  max.overlaps = Inf,
+ #                  nudge_x = 1.3,
+ #                  # nudge_y = 0,
+ #                  force = 20,
+ #                  hjust = 0,
+ #                  direction="y",
+ #                  na.rm = TRUE
+ #  ) +  
+  geom_text_repel(data = asy_est_all_sub %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0("  ",str_replace(subdiscipline_1, " Psychology", ""))),
+                  # segment.alpha = 0, ## This will 'hide' the link
+                  segment.curvature = -0.1,
+                  segment.square = TRUE,
+                  segment.color = 'grey',
+                  box.padding = 0.1,
+                  max.overlaps = Inf,
+                  point.padding = 0.6,
+                  xlim = c(2022, NA),
+                  nudge_x = 2,
+                  # nudge_y = 0.0,
+                  force = 5,
+                  hjust = 0,
+                  direction="y",
+                  na.rm = F) +
+  theme_minimal(base_size = 13) +
+  ggtitle("All measures, including revisions and translations") +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none") +
+    coord_cartesian(clip = "off")
+ggsave("figures/entropy_subdiscipline_all.pdf", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_all.png", width = 8, height = 4)
+```
 
+
+```{r}
 asy_est_orig_sub <- psyctests_info %>% 
   filter(between(Year, 1993, 2022), usage_count > 0) %>% 
   mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
@@ -1024,17 +1070,63 @@ asy_est_orig_sub <- psyctests_info %>%
   }) %>% 
   ungroup()
 
-ggplot(asy_est_orig_sub, aes(x = as.numeric(Assemblage), y = Estimator, color = subdiscipline)) +
-  geom_smooth(stat = "identity", size = 0.9) +
-  scale_y_continuous("Asymptotic Hill–Shannon Diversity") +
-  scale_x_continuous("Year", limits = c(1993, 2030)) +
-  theme_minimal(base_size = 14) +
-  labs(title = "Asymptotic Hill–Shannon Diversity (Original Measures)",
-       subtitle = "Estimates by subdiscipline using iNEXT")
-ggsave("figures/asy_entropy_subdiscipline_orig.png", width = 8, height = 4)
+
+asy_est_orig_sub <- asy_est_orig_sub %>% rename(Year = Assemblage)
+asy_est_orig_sub %>% 
+  ggplot(., aes(x = as.numeric(Year), y = Estimator, color = subdiscipline)) +
+  geom_line(size = 0.7) +
+  scale_y_continuous("Fragmentation index") +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2033), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 7))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggtitle(str_c(n_distinct(tests_by_year$Test), " measures tracked in PsycInfo")) +
+ # geom_text_repel(aes(label = gsub("^.*$", " ", subdiscipline_1)), # This will force the correct position of the link's right end.
+ #                  data = entropy_by_year %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
+ #                  segment.curvature = -0.1,
+ #                  segment.square = TRUE,
+ #                  segment.color = 'grey',
+ #                  box.padding = 0.1,
+ #                  point.padding = 0.6,
+ #                  max.overlaps = Inf,
+ #                  nudge_x = 1.3,
+ #                  # nudge_y = 0,
+ #                  force = 20,
+ #                  hjust = 0,
+ #                  direction="y",
+ #                  na.rm = TRUE
+ #  ) +  
+  geom_text_repel(data = asy_est_orig_sub %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0("  ",str_replace(subdiscipline_1, " Psychology", ""))),
+                  # segment.alpha = 0, ## This will 'hide' the link
+                  segment.curvature = -0.1,
+                  segment.square = TRUE,
+                  segment.color = 'grey',
+                  box.padding = 0.1,
+                  max.overlaps = Inf,
+                  point.padding = 0.6,
+                  xlim = c(2022, NA),
+                  nudge_x = 2,
+                  # nudge_y = 0.0,
+                  force = 5,
+                  hjust = 0,
+                  direction="y",
+                  na.rm = F) +
+  theme_minimal(base_size = 13) +
+  ggtitle("Lumping revisions and translations with their originals") +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none") +
+    coord_cartesian(clip = "off")
+ggsave("figures/entropy_subdiscipline_orig.pdf", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_orig.png", width = 8, height = 4)
+```
 
 
-
+```{r}
 asy_est_constructs_sub <- psyctests_info %>% 
   filter(between(Year, 1993, 2022), usage_count > 0) %>% 
   group_by(subdiscipline_1) %>% 
@@ -1056,14 +1148,58 @@ asy_est_constructs_sub <- psyctests_info %>%
   }) %>% 
   ungroup()
 
-ggplot(asy_est_constructs_sub, aes(x = as.numeric(Assemblage), y = Estimator, color = subdiscipline)) +
-  geom_smooth(stat = "identity", size = 0.9) +
-  scale_y_continuous("Asymptotic Hill–Shannon Diversity") +
-  scale_x_continuous("Year", limits = c(1993, 2038)) +
-  theme_minimal(base_size = 14) +
-  labs(title = "Asymptotic Hill–Shannon Diversity (Constructs)",
-       subtitle = "Estimates by subdiscipline using iNEXT")
-ggsave("figures/asy_entropy_subdiscipline_constructs.png", width = 8, height = 4)
+asy_est_constructs_sub <- asy_est_constructs_sub %>% rename(Year = Assemblage)
+asy_est_constructs_sub %>% 
+  ggplot(., aes(x = as.numeric(Year), y = Estimator, color = subdiscipline)) +
+  geom_line(size = 0.7) +
+  scale_y_continuous("Fragmentation index") +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2033), 
+                     breaks = seq(1993,2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022"),
+                     expand = expansion(add = c(0, 7))) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  # ggtitle(str_c(n_distinct(tests_by_year$Test), " measures tracked in PsycInfo")) +
+ # geom_text_repel(aes(label = gsub("^.*$", " ", subdiscipline_1)), # This will force the correct position of the link's right end.
+ #                  data = entropy_by_year %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
+ #                  segment.curvature = -0.1,
+ #                  segment.square = TRUE,
+ #                  segment.color = 'grey',
+ #                  box.padding = 0.1,
+ #                  point.padding = 0.6,
+ #                  max.overlaps = Inf,
+ #                  nudge_x = 1.3,
+ #                  # nudge_y = 0,
+ #                  force = 20,
+ #                  hjust = 0,
+ #                  direction="y",
+ #                  na.rm = TRUE
+ #  ) +  
+  geom_text_repel(data = asy_est_constructs_sub %>% drop_na() %>% group_by(subdiscipline_1) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0("  ",str_replace(subdiscipline_1, " Psychology", ""))),
+                  # segment.alpha = 0, ## This will 'hide' the link
+                  segment.curvature = -0.1,
+                  segment.square = TRUE,
+                  segment.color = 'grey',
+                  box.padding = 0.1,
+                  max.overlaps = Inf,
+                  point.padding = 0.6,
+                  xlim = c(2022, NA),
+                  nudge_x = 2,
+                  # nudge_y = 0.0,
+                  force = 5,
+                  hjust = 0,
+                  direction="y",
+                  na.rm = F) +
+  theme_minimal(base_size = 13) +
+  ggtitle("All measures, including revisions and translations") +
+   theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none") +
+    coord_cartesian(clip = "off")
+ggsave("figures/entropy_subdiscipline_constructs.pdf", width = 8, height = 4)
+ggsave("figures/entropy_subdiscipline_constructs.png", width = 8, height = 4)
 ```
 
 
