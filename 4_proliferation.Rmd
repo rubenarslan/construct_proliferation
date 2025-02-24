@@ -1,5 +1,5 @@
 ---
-title: "Construct proliferation: Changes over time"
+title: "Proliferation and fragmentation over time"
 ---
 
 ```{r setup, include=FALSE}
@@ -7,7 +7,8 @@ knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F, fig.widt
 
 library(groundhog)
 groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "readr",
-                    "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes"), 
+                    "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes",
+                    "entropy", "labelled", "hillR", "iNEXT"), 
                   date = "2024-02-24")
 theme_set(theme_minimal(base_size = 13))
 
@@ -809,9 +810,641 @@ ggsave("figures/usage_by_year_instrument_type_narrow.pdf", width = 14, height = 
 ggsave("figures/usage_by_year_instrument_type_narrow.png", width = 14, height = 10)
 ```
 
-# Entropy
+# Entropy/Fragmentation
 
-## Entropy by year
+```{r}
+# searchstring:(TM *a* OR TM *e* OR TM *o* OR TM *i* OR TM *u*) AND PY "year (i.e. 1993)"
+denominator <- rio::import("TnM_with_vowels_per_year_psycinfo.xlsx") %>% 
+  rename(Year = year, number_of_publications_with_tests_and_measures = results)
+psyctests_info <- psyctests_info %>% left_join(denominator) %>% 
+    filter(between(Year, 1993, 2022))
+
+var_label(psyctests_info$DOI) <- "Test DOI"
+var_label(psyctests_info$TestYear) <- "When test was published according to PsycTests"
+var_label(psyctests_info$first_pub_year) <- "First recorded year in which test was coded in PsycInfo"
+var_label(psyctests_info$last_pub_year) <- "Last recorded year in which test was coded in PsycInfo"
+var_label(psyctests_info$subdiscipline_1) <- "Subdiscipline of test"
+var_label(psyctests_info$usage_count) <- "Frequency observed in PsycInfo"
+write_rds(psyctests_info, "psycinfo_over_time.rds")
+```
+
+
+
+## Revised approach using Hill diversity and coverage 
+Total number of tests coded in our scrape vs. total number of pubs with tests and measures are highly correlated. The former probably better represents sampling effort, because lower effort could also result in fewer tests being coded for a single paper. So, using the number of tests coded as our indicator of effort is proper.
+
+```{r}
+pubs_vs_tests <- psyctests_info %>% group_by(Year) %>% summarise(n = sum(usage_count, na.rm = T), pubs_examined = mean(number_of_publications_with_tests_and_measures))
+cor.test(pubs_vs_tests$n, pubs_vs_tests$pubs_examined) %>% broom::tidy() %>% knitr::kable(caption = "Correlation between publications with tests coded vs. number of tests per year")
+```
+
+
+
+To compare across years, we use either rarefaction or coverage standardization to make every year directly comparable.
+
+```{r}
+# Set a seed for reproducibility
+set.seed(05102019)
+
+### 1. Prepare Counts Data (example: All tests)
+# Assume psyctests_info is already loaded and structured as in your original code.
+
+counts_all <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  drop_na(DOI) %>% 
+  filter(usage_count > 0) %>% 
+  group_by(Year, Test = DOI) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop")
+
+# 2.2. Revisions lumped
+counts_lumped <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022), usage_count > 0) %>% 
+  mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
+  drop_na(Test) %>%
+  group_by(Year, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop")
+
+# 2.3. By construct
+counts_construct <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022), usage_count > 0) %>% 
+  drop_na(first_construct) %>% 
+  mutate(Test = first_construct) %>%
+  group_by(Year, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop")
+
+### 2. Reshape Data: Make Tests the Rows and Years the Columns
+# Pivot to wide format so that each row is a Test and each column (except Test) is a Year.
+counts_all_wide <- counts_all %>% 
+  pivot_wider(id_cols = Test, names_from = Year, values_from = n, values_fill = list(n = 0))
+
+counts_lumped_wide <- counts_lumped %>% 
+  pivot_wider(id_cols = Test, names_from = Year, values_from = n, values_fill = list(n = 0))
+
+counts_construct_wide <- counts_construct %>% 
+  pivot_wider(id_cols = Test, names_from = Year, values_from = n, values_fill = list(n = 0))
+
+### 3. Run iNEXT for Coverage-Based Comparison
+# Here, we set q = 0 (species richness). You can set q = 1 for Hill–Shannon or q = 2 for Hill–Simpson.
+inext_all <- iNEXT(counts_all_wide %>% tibble::column_to_rownames("Test"), q = 0, datatype = "abundance")
+inext_lumped <- iNEXT(counts_lumped_wide %>% tibble::column_to_rownames("Test"), q = c(0,1, 2), datatype = "abundance")
+inext_constructs <- iNEXT(counts_construct_wide %>% tibble::column_to_rownames("Test"), 0, datatype = "abundance")
+# inext_all <- iNEXT(abundance_list_all, q = 0, datatype = "abundance")
+
+
+### 5. Plot the Coverage-Based Rarefaction/Extrapolation Curves
+ggiNEXT(inext_all, type = 1) +
+  labs(title = "Coverage-Based Diversity Estimates (All Tests)",
+       subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
+       x = "Sample Coverage",
+       y = "Diversity")
+
+ggiNEXT(inext_lumped, type = 1) +
+  labs(title = "Coverage-Based Diversity Estimates (Lumped Tests)",
+       subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
+       x = "Sample Coverage",
+       y = "Diversity")
+
+ggiNEXT(inext_constructs, type = 1) +
+  labs(title = "Coverage-Based Diversity Estimates (Constructs)",
+       subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
+       x = "Sample Coverage",
+       y = "Diversity")
+
+inext_combined = bind_rows("all"  = inext_all$AsyEst, "lumped" = inext_lumped$AsyEst, "constructs" = inext_constructs$AsyEst, .id = "type") %>% 
+  mutate(Year = as.numeric(Assemblage))
+
+ggplot(inext_combined, aes(x = Year, y = Estimator, ymin = LCL, ymax = UCL, group = type, color = type)) +
+  geom_smooth(stat = "identity", size = 0.9) +
+  facet_grid(Diversity ~ ., scales = "free_y") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Coverage-Standardized Diversity Metrics Across Years",
+       subtitle = "Columns: Count type; Rows: Diversity metrics (Richness, Shannon, Simpson, True Diversity)",
+       x = "Year",
+       y = "Diversity Value") +
+  scale_color_brewer(palette = "Set1")
+```
+
+
+```{r}
+asymptotic_hill_shannon <- inext_combined %>% filter(Diversity %in% c( "Shannon diversity")) %>% 
+  mutate(type = case_match(type, 
+                           "all" ~ "measures",
+                           "constructs" ~ "constructs",
+                            "lumped" ~ "with translations\n and revisions"))
+
+asymptotic_hill_shannon %>% 
+  ggplot(., aes(Year, y = Estimator, min=LCL, ymax = UCL, color = type, fill = type)) +
+  geom_smooth(size = 0.7, stat = "identity") +
+  scale_y_continuous("Fragmentation index") +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2030), 
+                     breaks = seq(1993, 2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  scale_fill_brewer(type = "qual", guide = "none", palette = 2) +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  geom_text_repel(data = asymptotic_hill_shannon %>% drop_na() %>% group_by(type) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ",type)), # "\n (n = ", n_tests, ")"
+                  segment.curvature = -0.5,
+                  segment.square = TRUE,
+                  segment.color = 'grey', 
+                  xlim = c(2023, 2030),
+                  nudge_x = 1.14,
+                  lineheight = .9,
+                  hjust = 0,
+                  direction="y",
+                  na.rm = TRUE) +
+  theme_minimal(base_size = 13) +
+   theme(
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")
+
+ggsave("figures/entropy.pdf", width = 8, height = 4)
+ggsave("figures/entropy.png", width = 8, height = 4)
+```
+
+### By subdiscipline
+```{r}
+# For each subdiscipline, pivot the counts (tests = DOI) across years, run iNEXT (q = 1),
+# and extract the asymptotic Shannon diversity estimates.
+asy_est_all_sub <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022), usage_count > 0) %>% 
+  group_by(subdiscipline_1) %>% 
+  group_modify(~ {
+    # Create a wide matrix: rows = tests (DOI), columns = Years
+    counts <- .x %>% 
+      group_by(Year, Test = DOI) %>% 
+      summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop") %>% 
+      pivot_wider(id_cols = Test, names_from = Year, values_from = n, values_fill = list(n = 0))
+    
+    if(nrow(counts) > 0 && ncol(counts) > 1) {
+      inext_obj <- iNEXT(counts %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
+      asy <- inext_obj$AsyEst %>% 
+        filter(Diversity == "Shannon diversity") %>% 
+        mutate(subdiscipline = .y$subdiscipline_1)
+      asy
+    } else {
+      tibble()
+    }
+  }) %>% 
+  ungroup()
+
+# Plot the asymptotic estimates
+ggplot(asy_est_all_sub, aes(x = as.numeric(Assemblage), y = Estimator, color = subdiscipline)) +
+  geom_smooth(stat = "identity", size = 0.9) +
+  scale_y_continuous("Asymptotic Hill–Shannon Diversity") +
+  scale_x_continuous("Year", limits = c(1993, 2030)) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Asymptotic Hill–Shannon Diversity (All Measures)",
+       subtitle = "Estimates by subdiscipline using iNEXT")
+ggsave("figures/asy_entropy_subdiscipline_all.png", width = 8, height = 4)
+
+asy_est_orig_sub <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022), usage_count > 0) %>% 
+  mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
+  drop_na(Test) %>% 
+  group_by(subdiscipline_1) %>% 
+  group_modify(~ {
+    counts <- .x %>% 
+      group_by(Year, Test) %>% 
+      summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop") %>% 
+      pivot_wider(id_cols = Test, names_from = Year, values_from = n, values_fill = list(n = 0))
+    
+    if(nrow(counts) > 0 && ncol(counts) > 1) {
+      inext_obj <- iNEXT(counts %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
+      asy <- inext_obj$AsyEst %>% 
+        filter(Diversity == "Shannon diversity") %>% 
+        mutate(subdiscipline = .y$subdiscipline_1)
+      asy
+    } else {
+      tibble()
+    }
+  }) %>% 
+  ungroup()
+
+ggplot(asy_est_orig_sub, aes(x = as.numeric(Assemblage), y = Estimator, color = subdiscipline)) +
+  geom_smooth(stat = "identity", size = 0.9) +
+  scale_y_continuous("Asymptotic Hill–Shannon Diversity") +
+  scale_x_continuous("Year", limits = c(1993, 2030)) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Asymptotic Hill–Shannon Diversity (Original Measures)",
+       subtitle = "Estimates by subdiscipline using iNEXT")
+ggsave("figures/asy_entropy_subdiscipline_orig.png", width = 8, height = 4)
+
+
+
+asy_est_constructs_sub <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022), usage_count > 0) %>% 
+  group_by(subdiscipline_1) %>% 
+  group_modify(~ {
+    counts <- .x %>% 
+      group_by(Year, Test = first_construct) %>% 
+      summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop") %>% 
+      pivot_wider(id_cols = Test, names_from = Year, values_from = n, values_fill = list(n = 0))
+    
+    if(nrow(counts) > 0 && ncol(counts) > 1) {
+      inext_obj <- iNEXT(counts %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
+      asy <- inext_obj$AsyEst %>% 
+        filter(Diversity == "Shannon diversity") %>% 
+        mutate(subdiscipline = .y$subdiscipline_1)
+      asy
+    } else {
+      tibble()
+    }
+  }) %>% 
+  ungroup()
+
+ggplot(asy_est_constructs_sub, aes(x = as.numeric(Assemblage), y = Estimator, color = subdiscipline)) +
+  geom_smooth(stat = "identity", size = 0.9) +
+  scale_y_continuous("Asymptotic Hill–Shannon Diversity") +
+  scale_x_continuous("Year", limits = c(1993, 2038)) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Asymptotic Hill–Shannon Diversity (Constructs)",
+       subtitle = "Estimates by subdiscipline using iNEXT")
+ggsave("figures/asy_entropy_subdiscipline_constructs.png", width = 8, height = 4)
+```
+
+
+
+## Rarefaction
+Rarefaction involves resampling the tests in each year a number of times based off of the smallest sample-size (year with the smallest number of measure observations, 1993) to get a distribution of comparisons. This also allows us to get rid of the relativizing from zero to one, no matter what  diversity measure we use.
+
+
+```{r}
+# Set a seed for reproducibility
+set.seed(05102019)
+
+### 1. Define a simulation function for rarefaction
+
+simulate_rarefaction <- function(freq, n_min, k = 50) {
+  # freq: named numeric vector of counts (names are test IDs)
+  # n_min: rarefaction depth (number of observations to sample)
+  # k: number of resampling iterations
+  res <- replicate(k, {
+    # Expand the frequency vector into a vector of individual observations
+    pop <- rep(names(freq), times = freq)
+    # Sample without replacement the rarefaction depth number of individuals
+    sample_ids <- sample(pop, size = n_min, replace = FALSE)
+    tbl <- table(sample_ids)
+    
+    # Compute diversity metrics:
+    richness     <- length(tbl)
+    shannon      <- entropy(as.numeric(tbl))
+    gini_simpson <- 1 - sum((as.numeric(tbl) / n_min)^2)
+    hill_simpson <- hillR::hill_taxa(as.numeric(tbl), q = 2)
+    hill_shannon <- hillR::hill_taxa(as.numeric(tbl), q = 1) 
+    # effective number of species (Hill number q=1)
+    
+    
+    c(richness = richness,
+      shannon = shannon,
+      gini_simpson = gini_simpson,
+      hill_simpson = hill_simpson,
+      hill_shannon = hill_shannon)
+  })
+  
+  # Convert the simulation output to a data frame:
+  res_df <- as.data.frame(t(res))
+  res_df$replicate <- 1:k
+  res_df
+}
+
+### 2. Prepare counts for each grouping
+
+# 2.1. All tests (using DOI as the test identifier)
+counts_all <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  drop_na(DOI) %>% 
+  filter(usage_count > 0) %>% 
+  group_by(Year, Test = DOI) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop")
+
+# 2.2. Revisions lumped (using if_else to recode tests)
+counts_lumped <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
+  drop_na(Test) %>% 
+  filter(usage_count > 0) %>% 
+  group_by(Year, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop")
+
+
+# 2.3. By construct (using first_construct as the test identifier)
+counts_construct <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  filter(usage_count > 0) %>% 
+  drop_na(first_construct) %>% 
+  mutate(Test = first_construct) %>% 
+  group_by(Year, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE), .groups = "drop")
+
+### 3. A helper function to run rarefaction per count type
+
+run_rarefaction <- function(counts_df, type_label, k = 500) {
+  # Compute total counts per year for this type:
+  yearly_totals <- counts_df %>% 
+    group_by(Year) %>% 
+    summarise(total = sum(n), .groups = "drop")
+  
+  # Set the rarefaction depth to the smallest total count across years:
+  rarefaction_depth <- min(yearly_totals$total)
+  
+  # For each year, create the frequency vector and run the simulation:
+  sim_data <- counts_df %>% 
+    group_by(Year) %>% 
+    summarise(freq = list(setNames(n, Test)), .groups = "drop") %>% 
+    left_join(yearly_totals, by = "Year") %>% 
+    mutate(sim = map(freq, ~ simulate_rarefaction(.x, n_min = rarefaction_depth, k = k))) %>% 
+    select(Year, sim) %>% 
+    unnest(sim) %>% 
+    mutate(type = type_label)
+  
+  sim_data
+}
+
+### 4. Run rarefaction for all three types
+
+rare_all       <- run_rarefaction(counts_all,       "All tests")
+rare_lumped    <- run_rarefaction(counts_lumped,    "Revisions lumped")
+rare_construct <- run_rarefaction(counts_construct, "By construct")
+
+# Combine the rarefaction results from all types:
+rare_combined <- bind_rows(rare_all, rare_lumped, rare_construct)
+
+# Pivot the data to long format for the metrics
+rare_long <- rare_combined %>% 
+  pivot_longer(cols = c(richness, shannon, gini_simpson, hill_simpson, hill_shannon),
+               names_to = "metric",
+               values_to = "value")
+
+# Summarize rarefaction results
+rare_long <- rare_long %>%
+  group_by(Year, type, metric) %>%
+  summarise(
+    mean = mean(value),
+    lower = quantile(value, 0.025),
+    upper = quantile(value, 0.975)
+  )
+
+
+### 5. Create a facet plot
+# The facet grid is arranged with metrics in rows and count types in columns.
+ggplot(rare_long, aes(x = Year, y = mean, min=lower, ymax = upper)) +
+  geom_smooth(stat = "identity") +
+  # geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +
+  facet_grid(metric ~ type, scales = "free_y") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Rarefaction Diversity Metrics Across Years",
+       subtitle = "Columns: Count type; Rows: Diversity metrics",
+       x = "Year",
+       y = "Metric value")
+```
+
+
+```{r}
+ggplot(rare_long %>% filter(metric %in% c("richness", "hill_shannon", "hill_simpson")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type)) +
+  geom_smooth(stat = "identity") +
+  # geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +
+  facet_grid(metric ~ ., scales = "free_y") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Rarefaction Diversity Metrics Across Years",
+       subtitle = "Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)",
+       x = "Year",
+       y = "Metric value") +
+  scale_color_brewer(palette = "Set1")
+```
+
+```{r}
+ggplot(rare_long %>% filter(metric %in% c( "hill_shannon")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type)) +
+  geom_smooth(stat = "identity") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Rarefaction Diversity Metrics Across Years",
+       subtitle = "Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)",
+       x = "Year",
+       y = "Metric value") +
+  scale_color_brewer(palette = "Set1")
+
+
+rarefaction_hill_shannon <- rare_long %>% filter(metric %in% c( "hill_shannon")) %>% 
+  mutate(type = case_match(type, 
+                           "All tests" ~ "measures",
+                           "By construct" ~ "constructs",
+                            "Revisions lumped" ~ "with translations\n and revisions")) 
+
+rarefaction_hill_shannon %>% 
+  ggplot(., aes(Year, y = mean, min=lower, ymax = upper, color = type, fill = type)) +
+  geom_smooth(size = 0.7, stat = "identity") +
+  scale_y_continuous("Fragmentation index") +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2030), 
+                     breaks = seq(1993, 2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  scale_fill_brewer(type = "qual", guide = "none", palette = 2) +
+  geom_vline(xintercept = 2016, linetype = 'dashed') +
+  geom_text_repel(data = rarefaction_hill_shannon %>% drop_na() %>% group_by(type) %>% filter(Year == max(Year, na.rm = T)),
+                  aes(label = paste0(" ",type)), # "\n (n = ", n_tests, ")"
+                  segment.curvature = -0.5,
+                  segment.square = TRUE,
+                  segment.color = 'grey', 
+                  xlim = c(2023, 2030),
+                  nudge_x = 1.14,
+                  lineheight = .9,
+                  hjust = 0,
+                  direction="y",
+                  na.rm = TRUE) +
+  theme_minimal(base_size = 13) +
+   theme(
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(face="bold"),
+        legend.position = "none")
+ggsave("figures/entropy_rarefaction.pdf", width = 8, height = 4)
+ggsave("figures/entropy_rarefaction.png", width = 8, height = 4)
+```
+
+## Rarefaction plus 25% chance of off by one
+Primitive approach to check robustness of conclusions to off-by-one errors.
+
+```{r}
+# Set a seed for reproducibility
+set.seed(05102019)
+
+### 1. Define a simulation function for rarefaction with per-sample error
+simulate_rarefaction <- function(freq, pub_year, current_year, n_min, k = 50) {
+  # freq: named numeric vector of counts (names are test IDs)
+  # pub_year: named numeric vector of TestYear for each test (same names as freq)
+  # current_year: the scalar year for this group
+  # n_min: rarefaction depth (number of observations to sample)
+  # k: number of resampling iterations
+  res <- replicate(k, {
+    # For each test, adjust the count with measurement error anew:
+    freq_adj <- sapply(seq_along(freq), function(i) {
+      if (is.na(pub_year[i]) || current_year < pub_year[i]) {
+        # Before publication or missing publication info, force count to 0
+        0
+      } else {
+        # With 25% chance, adjust the count by ±1; otherwise leave unchanged.
+        adjustment <- if (runif(1) < 0.25) sample(c(-1, 1), size = 1) else 0
+        new_val <- freq[i] + adjustment
+        if (new_val < 0) 0 else new_val
+      }
+    })
+    
+    # Expand the adjusted frequency vector into individual observations
+    pop <- rep(names(freq_adj), times = freq_adj)
+    
+    # If there are too few observations after error adjustment, return NA metrics.
+    if (length(pop) < n_min) {
+      return(c(richness = NA, shannon = NA, gini_simpson = NA, true_diversity = NA))
+    }
+    
+    # Draw a rarefied sample without replacement.
+    sample_ids <- sample(pop, size = n_min, replace = FALSE)
+    tbl <- table(sample_ids)
+    
+    # Compute diversity metrics:
+    richness     <- length(tbl)
+    shannon      <- entropy(as.numeric(tbl))
+    gini_simpson <- 1 - sum((as.numeric(tbl) / n_min)^2)
+    true_diversity <- exp(shannon)  # effective number of species (Hill number q=1)
+    
+    c(richness = richness,
+      shannon = shannon,
+      gini_simpson = gini_simpson,
+      true_diversity = true_diversity)
+  })
+  
+  # Convert the simulation output to a data frame.
+  res_df <- as.data.frame(t(res))
+  res_df$replicate <- 1:k
+  res_df
+}
+
+### 2. Prepare counts for each grouping (bringing along TestYear)
+
+# 2.1. All tests (using DOI as the test identifier)
+counts_all <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  drop_na(DOI) %>% 
+  filter(usage_count > 0) %>% 
+  group_by(Year, Test = DOI) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE),
+            TestYear = min(TestYear),
+            .groups = "drop")
+
+# 2.2. Revisions lumped (using if_else to recode tests)
+counts_lumped <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
+  drop_na(Test) %>% 
+  filter(usage_count > 0) %>% 
+  group_by(Year, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE),
+            TestYear = min(TestYear),
+            .groups = "drop")
+
+# 2.3. By construct (using first_construct as the test identifier)
+counts_construct <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  filter(usage_count > 0) %>% 
+  drop_na(first_construct) %>% 
+  mutate(Test = first_construct) %>% 
+  group_by(Year, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = TRUE),
+            TestYear = min(TestYear),
+            .groups = "drop")
+
+### 3. A helper function to run rarefaction per count type with per-sample error
+run_rarefaction <- function(counts_df, type_label, k = 500) {
+  # Compute total counts per year for this type:
+  yearly_totals <- counts_df %>% 
+    group_by(Year) %>% 
+    summarise(total = sum(n), .groups = "drop")
+  
+  # Set the rarefaction depth to the smallest total count across years:
+  rarefaction_depth <- min(yearly_totals$total)
+  
+  # For each year, create the frequency vector and the publication year vector,
+  # then run the simulation using pmap so that the scalar Year is passed along.
+  sim_data <- counts_df %>% 
+    group_by(Year) %>% 
+    summarise(
+      freq = list(setNames(n, Test)),
+      pub  = list(setNames(TestYear, Test)),
+      .groups = "drop"
+    ) %>% 
+    left_join(yearly_totals, by = "Year") %>% 
+    mutate(sim = pmap(
+      list(freq, pub, Year),
+      function(freq, pub, Year) {
+        simulate_rarefaction(
+          freq = freq,
+          pub_year = pub,
+          current_year = Year,
+          n_min = rarefaction_depth,
+          k = k
+        )
+      }
+    )) %>% 
+    select(Year, sim) %>% 
+    unnest(sim) %>% 
+    mutate(type = type_label)
+  
+  sim_data
+}
+
+### 4. Run rarefaction for all three types
+rare_all       <- run_rarefaction(counts_all,       "All tests")
+rare_lumped    <- run_rarefaction(counts_lumped,    "Revisions lumped")
+rare_construct <- run_rarefaction(counts_construct, "By construct")
+
+# Combine the rarefaction results from all types:
+rare_combined <- bind_rows(rare_all, rare_lumped, rare_construct)
+
+# Pivot the data to long format for the metrics
+rare_long <- rare_combined %>% 
+  pivot_longer(cols = c(richness, shannon, gini_simpson, true_diversity),
+               names_to = "metric",
+               values_to = "value")
+
+# Summarize rarefaction results (mean and 95% intervals)
+rare_long <- rare_long %>%
+  group_by(Year, type, metric) %>%
+  summarise(
+    mean = mean(value, na.rm = TRUE),
+    lower = quantile(value, 0.025, na.rm = TRUE),
+    upper = quantile(value, 0.975, na.rm = TRUE)
+  )
+
+### 5. Create a facet plot of the results
+ggplot(rare_long, aes(x = Year, y = mean, ymin = lower, ymax = upper)) +
+  geom_smooth(stat = "identity") +
+  facet_grid(metric ~ type, scales = "free_y") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Rarefaction Diversity Metrics Across Years (Error Added Each Sample)",
+       subtitle = "For published tests, counts are adjusted by ±1 with 25% probability anew per simulation",
+       x = "Year",
+       y = "Metric value")
+
+ggplot(rare_long %>% filter(metric %in% c("richness", "true_diversity")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type)) +
+  geom_smooth(stat = "identity") +
+  # geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +
+  facet_grid(metric ~ ., scales = "free_y") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Rarefaction Diversity Metrics Across Years + 25% chance off by one",
+       subtitle = "Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)",
+       x = "Year",
+       y = "Metric value") +
+  scale_y_log10()+
+  scale_color_brewer(palette = "Set1")
+```
+
+
+## Old approach: Normalised Shannon Entropy
+
 ```{r}
 byorig_entropy_by_year <- psyctests_info %>% 
   filter(between(Year, 1993, 2022)) %>% 
@@ -916,9 +1549,6 @@ entropy_by_year %>%
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
         legend.position = "none")
-
-ggsave("figures/entropy.pdf", width = 8, height = 4)
-ggsave("figures/entropy.png", width = 8, height = 4)
 ```
 
 
@@ -1803,8 +2433,12 @@ entropy_all_constructs <- all_constructs_over_time %>%
   mutate(n_tests = n_distinct(construct)) %>% 
   group_by(n_tests, Year) %>% 
   filter(n > 0) %>% 
-  summarise(entropy = entropy(n),,
+  summarise(
+    tests = list(as.numeric(n)),
+    entropy = entropy(n),,
             norm_entropy = calc_norm_entropy(n),
+        hill_shannon = hillR::hill_taxa(n, q = 1),
+
             n = sum(n),
             diff_tests = n()) %>% 
   ungroup()
@@ -1818,10 +2452,14 @@ byconstruct_entropy_by_year <- psyctests_info %>%
   mutate(n_tests = n_distinct(Test)) %>% 
   group_by(n_tests, Year) %>% 
   filter(n > 0) %>% 
-  summarise(entropy = entropy(n),,
-            norm_entropy = calc_norm_entropy(n),
-            n = sum(n),
-            diff_tests = n()) %>% 
+  summarise(
+    tests = list(as.numeric(n)),
+    total_n = sum(n),
+    entropy = entropy(n),,
+    norm_entropy = calc_norm_entropy(n),
+    hill_shannon = hillR::hill_taxa(n, q = 1),
+    n = sum(n),
+    diff_tests = n()) %>% 
   ungroup()
 
 entropy_by_year <- bind_rows(# "all tests" = all_entropy_by_year,
@@ -1831,9 +2469,9 @@ entropy_by_year <- bind_rows(# "all tests" = all_entropy_by_year,
                              .id = "version")
 
 entropy_by_year %>% 
-  ggplot(., aes(Year, norm_entropy, color = version)) +
+  ggplot(., aes(Year, hill_shannon, color = version)) +
   geom_line(size = 0.7) +
-  scale_y_continuous("Normalized Shannon Entropy", limits = c(0, 1), labels = scales::percent) +
+  scale_y_continuous("Hill-Shannon Diversity") +
   # geom_line(aes(y = log(n)), color = 'red') +
   scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2027), 
                      breaks = seq(1993, 2022, by = 1),
@@ -1844,7 +2482,7 @@ entropy_by_year %>%
   #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
   #   size = 4, hjust = 1,
   #   ) + 
-  geom_text_repel(data = entropy_by_year %>% drop_na() %>% group_by(version) %>% filter(Year == max(Year, na.rm = T)),
+  geom_text_repel(data = entropy_by_year %>% group_by(version) %>% filter(Year == max(Year, na.rm = T)),
                   aes(label = paste0(" ",version)), # "\n (n = ", n_tests, ")"
                   segment.curvature = -0.5,
                   segment.square = TRUE,
@@ -1867,183 +2505,78 @@ ggsave("figures/entropy_all_vs_first.pdf", width = 8, height = 4)
 ggsave("figures/entropy_all_vs_first.png", width = 8, height = 4)
 ```
 
-## Unbiased estimators of Shannon entropy
 
-Does not make much of a difference.
-
-```{r}
-byorig_entropy_by_year <- psyctests_info %>% 
-  filter(between(Year, 1993, 2022)) %>% 
-  mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
-  drop_na(Test) %>% 
-  group_by(Year, Test) %>% 
-  summarise(n = sum(usage_count, na.rm = T)) %>% 
-  ungroup() %>% 
-  mutate(n_tests = n_distinct(Test)) %>% 
-  group_by(n_tests, Year) %>% 
-  filter(n > 0) %>% 
-  summarise(norm_entropy = calc_norm_entropy(n),
-            norm_entropy_MM = entropy(n, method = "MM") / log(n()),
-            n = sum(n),
-            diff_tests = n()) %>% 
-  ungroup()
-
-1 - (byorig_entropy_by_year$n_tests[1]/ records_wide %>% filter(between(TestYear, 1993, 2022)) %>% 
-       mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
-       summarise(n_distinct(Test)))
-
-
-byconstruct_entropy_by_year <- psyctests_info %>% 
-  filter(between(Year, 1993, 2022)) %>% 
-  drop_na(first_construct) %>% 
-  group_by(Year, Test = first_construct) %>% 
-  summarise(n = sum(usage_count, na.rm = T)) %>% 
-  ungroup() %>% 
-  mutate(n_tests = n_distinct(Test)) %>% 
-  group_by(n_tests, Year) %>% 
-  filter(n > 0) %>% 
-  summarise(norm_entropy = calc_norm_entropy(n),
-            norm_entropy_MM = entropy(n, method = "MM") / log(n()),
-            n = sum(n),
-            diff_tests = n()) %>% 
-  ungroup()
-
-all_entropy_by_year <- psyctests_info %>% 
-  filter(between(Year, 1993, 2022)) %>% 
-  drop_na(DOI) %>% 
-  group_by(Year, Test = DOI) %>% 
-  summarise(n = sum(usage_count, na.rm = T)) %>% 
-  ungroup() %>% 
-  mutate(n_tests = n_distinct(Test)) %>% 
-  group_by(n_tests, Year) %>% 
-  filter(n > 0) %>% 
-  summarise(norm_entropy = calc_norm_entropy(n),
-            norm_entropy_MM = entropy(n, method = "MM") / log(n()),
-            n = sum(n),
-            diff_tests = n()) %>% 
-  ungroup()
-
-original_entropy_by_year <- psyctests_info %>% 
-  filter(between(Year, 1993, 2022)) %>% 
-  filter(test_type == "Original") %>% 
-  group_by(Year, Test = DOI) %>% 
-  summarise(n = sum(usage_count, na.rm = T)) %>% 
-  ungroup() %>% 
-  mutate(n_tests = n_distinct(Test)) %>% 
-  group_by(n_tests, Year) %>% 
-  filter(n > 0) %>% 
-  summarise(norm_entropy = calc_norm_entropy(n),
-            norm_entropy_MM = entropy(n, method = "MM") / log(n()),
-            n = sum(n),
-            diff_tests = n()) %>% 
-  ungroup()
-
-entropy_by_year <- bind_rows(# "all tests" = all_entropy_by_year,
-  "measures" = original_entropy_by_year,
-  "with translations\n and revisions" = byorig_entropy_by_year,
-  # "by name base" = bybase_entropy_by_year,
-  "constructs" = byconstruct_entropy_by_year,
-  .id = "version")
-
-
-plot_entropy <- entropy_by_year %>% 
-  ggplot(., aes(Year, norm_entropy, color = version)) +
-  geom_line(size = 0.7, linetype = "dashed") +
-  geom_line(aes(y = norm_entropy_MM), size = 0.7) +
-  scale_y_continuous("Normalized Shannon Entropy", limits = c(0, 1), labels = scales::percent) +
-  # geom_line(aes(y = log(n)), color = 'red') +
-  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2027), 
-                     breaks = seq(1993, 2022, by = 1),
-                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
-  # ggtitle(str_c(n_distinct(tests_by_year$Test), " measures tracked in PsycInfo")) +
-  # annotate("text", x = 1993, y = 1, label = "- each used once", 
-  #       size = 3.3, vjust = 0.3, hjust = 0.05) +
-  # annotate("text", x = 1993, y = 0, label = "- all used one", 
-  #       size = 3.3,  vjust = 0.3, hjust = 0.05) +
-  
-  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
-  # ggrepel::geom_text_repel(
-  #   aes(label = str_replace(subdiscipline, " Psychology", "")), data = entropy_by_year %>% filter(Year == max(Year, na.rm = T)),
-  #   size = 4, hjust = 1,
-  #   ) + 
-  geom_text_repel(aes(label = str_replace_all(version, "[a-z=0-9/() ]+", " ")), # This will force the correct position of the link's right end.
-                  data = entropy_by_year %>% drop_na() %>% group_by(version) %>% filter(Year == max(Year, na.rm = T)),
-                  segment.curvature = -0.1,
-                  segment.square = TRUE,
-                  lineheight = .9,
-                  segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.15,
-                  nudge_y = 0.03,
-                  force = 0.9,
-                  hjust = 0,
-                  direction="y",
-                  size = 3.3,
-                  na.rm = TRUE) +
-  geom_text_repel(data = entropy_by_year %>% drop_na() %>% group_by(version) %>% filter(Year == max(Year, na.rm = T)),
-                  aes(label = paste0(" ",version)), # "\n (n = ", n_tests, ")"
-                  segment.alpha = 0, ## This will 'hide' the link
-                  segment.curvature = -0.1,
-                  segment.square = TRUE,
-                  # segment.color = 'grey',
-                  box.padding = 0.1,
-                  point.padding = 0.6,
-                  nudge_x = 1.15,
-                  nudge_y = 0.0,
-                  lineheight = .9,
-                  force = 0.9,
-                  size = 3.3,
-                  hjust = 0,
-                  direction="y",
-                  na.rm = TRUE) +
-  theme_minimal(base_size = 13) +
-  theme(panel.grid.minor.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        plot.title.position = "plot",
-        plot.title = element_text(face="bold"),
-        legend.position = "none")
-plot_entropy
-```
-
-## Entropy by classificaiton
+## Entropy by classification
 ```{r}
 entropy_by_class <- psyctests_info %>% 
-  group_by(classification_1, DOI) %>% 
-  summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 50 ~ "",
-                    n > 20 ~ "used 21-50 times",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times")) %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
+  group_by(classification_1, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = T)) %>% 
   group_by(classification_1) %>% 
   # filter(n > 0) %>% 
   summarise(
+    tbl = list(as.numeric(n)),
+    total_n = sum(n),
     entropy = entropy(n),
-    norm_entropy = calc_norm_entropy(n)) %>% 
+    norm_entropy = calc_norm_entropy(n),
+    hill_shannon = hillR::hill_taxa(n, q = 1)) %>% 
   arrange(norm_entropy)
 
-kable(entropy_by_class)
+entropy_by_class_list <- entropy_by_class %>% select(classification_1, tbl) %>% 
+  deframe()
+```
+
+
+```{r}
+entropy_by_class_inext <- iNEXT(entropy_by_class_list) # , endpoint = 1000, knots = 10
+ggiNEXT(entropy_by_class_inext)
+
+entropy_by_class <- entropy_by_class %>% select(-tbl) %>% full_join(
+  entropy_by_class_inext$AsyEst %>% rename(classification_1 = Assemblage) %>% 
+    mutate(diversity_estimate = sprintf("%.0f [%.0f;%.0f]", Estimator, LCL, UCL)) %>%
+    # mutate(diversity_estimate = Estimator) %>% 
+    select(classification_1, diversity_estimate, Diversity) %>% 
+    pivot_wider(values_from = diversity_estimate, names_from = Diversity)
+)
+
+kable(entropy_by_class %>% arrange(`Shannon diversity` %>% str_extract("([0-9]+) ") %>% as.numeric(), hill_shannon))
 ```
 
 ## Entropy by instrument type
 ```{r}
-psyctests_info %>% 
-  group_by(instrument_type_broad, DOI) %>% 
-  summarise(n = sum(usage_count, na.rm = T),
-            parent = case_when(
-                    n > 50 ~ "",
-                    n > 20 ~ "used 21-50 times",
-                    n > 5 ~ "used 6-20 times",
-                    TRUE ~ "used 1-5 times")) %>% 
+entropy_by_instrument <- psyctests_info %>% 
+  filter(between(Year, 1993, 2022)) %>% 
+  mutate(Test = if_else(test_type == "Original", DOI, original_test_DOI)) %>% 
+  group_by(instrument_type_broad, Test) %>% 
+  summarise(n = sum(usage_count, na.rm = T)) %>% 
   group_by(instrument_type_broad) %>% 
   filter(n > 0) %>% 
   summarise(
+    tbl = list(as.numeric(n)),
+    total_n = sum(n),
     entropy = entropy(n),
-    norm_entropy = calc_norm_entropy(n)) %>% 
-  arrange(norm_entropy) %>% 
+    norm_entropy = calc_norm_entropy(n),
+    hill_shannon = hillR::hill_taxa(n, q = 1)) %>% 
+  arrange(hill_shannon)
+
+
+entropy_by_instrument_list <- entropy_by_instrument %>% select(instrument_type_broad, tbl) %>% 
+  deframe()
+entropy_by_instrument_inext <- iNEXT(entropy_by_instrument_list, endpoint = 1000, knots = 10)
+ggiNEXT(entropy_by_instrument_inext)
+
+entropy_by_instrument <- entropy_by_instrument %>% select(-tbl) %>% full_join(
+  entropy_by_instrument_inext$AsyEst %>% rename(instrument_type_broad = Assemblage) %>% 
+    mutate(diversity_estimate = sprintf("%.0f [%.0f;%.0f]", Estimator, LCL, UCL)) %>%
+    # mutate(diversity_estimate = Estimator) %>% 
+    select(instrument_type_broad, diversity_estimate, Diversity) %>% 
+    pivot_wider(values_from = diversity_estimate, names_from = Diversity)
+)
+entropy_by_instrument %>% 
   kable()
 ```
+
 
 # Tests by exact same name
 ```{r}

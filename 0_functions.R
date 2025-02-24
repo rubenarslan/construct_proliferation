@@ -1,7 +1,4 @@
 get_name_base <- function(Name_base) {
-  library(stringi)
-
-
   # stringi::stri_trim_right("yadda, :-", "[\\p{Wspace}:,-;]", negate = TRUE)
   right_trim_punct_space <- function(x) { stringi::stri_trim_right(x, "[\\p{Wspace}:,-;]", negate = TRUE) }
 

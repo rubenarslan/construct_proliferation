@@ -8,7 +8,7 @@ https://www.apa.org/pubs/databases/psyctests/field-guide
 knitr::opts_chunk$set(echo = TRUE)
 
 library(groundhog)
-groundhog.library(c("tidyverse", "codebook", "xml2", "kableExtra", "tools"), date = "2024-02-14")
+groundhog.library(c("tidyverse", "codebook", "xml2", "kableExtra", "tools", "stringi"), date = "2024-02-14")
 source("0_functions.R")
 
 ```
