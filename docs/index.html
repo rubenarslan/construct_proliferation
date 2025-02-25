@@ -2184,9 +2184,9 @@ Show code
 </div>
 </details>
 <div class="figure"><span style="display:block;" id="fig:unnamed-chunk-2"></span>
-<a href="3_fragmentation_overall.html" target="_blank"><img src="figures/treemap_overall.png" alt="Treemap showing fragmentation across subfields. Normalized Shannon entropy $\eta(X) = 0.71$ &lt;br&gt;Click image to open interactive plot." width="100%" /></a>
+<a href="3_fragmentation_overall.html" target="_blank"><img src="figures/treemap_overall.png" alt="Treemap showing fragmentation across subfields. Hill-Shannon Diversity $D = 1626.05$ &lt;br&gt;Click image to open interactive plot." width="100%" /></a>
 <p class="caption">
-Figure 1: Treemap showing fragmentation across subfields. Normalized Shannon entropy <span class="math inline">\(\eta(X) = 0.71\)</span> <br>Click image to open interactive plot.
+Figure 1: Treemap showing fragmentation across subfields. Hill-Shannon Diversity <span class="math inline">\(D = 1626.05\)</span> <br>Click image to open interactive plot.
 </p>
 </div>
 </div>
@@ -2205,11 +2205,12 @@ Show code
 <span>  <span class='fu'>group_by</span><span class='op'>(</span><span class='va'>DOI</span>, <span class='va'>shortName</span>, <span class='va'>Name</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
 <span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
-<span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
+<span><span class='va'>hill_shannon</span> <span class='op'>=</span> <span class='fu'>calc_hill_shannon</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
 </div>
 <h2 id="personality-and-social-psychology">Personality and Social Psychology</h2>
+<h3 id="fragmentation-hill-shannon-diversity-d-919">Fragmentation (Hill-Shannon Diversity) <span class="math inline">\(D = 919\)</span></h3>
 <div class="layout-chunk" data-layout="l-screen-inset">
 <details>
 <summary>
@@ -2238,12 +2239,12 @@ Show code
 <span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
-<span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
+<span><span class='va'>hill_shannon</span> <span class='op'>=</span> <span class='fu'>calc_hill_shannon</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
 </div>
 <h2 id="industrialorganizational-psychology">Industrial/Organizational Psychology</h2>
-<h3 id="normalized-shannon-entropy-etax-0.80">Normalized Shannon entropy <span class="math inline">\(\eta(X) = 0.80\)</span></h3>
+<h3 id="fragmentation-hill-shannon-diversity-d-671">Fragmentation (Hill-Shannon Diversity) <span class="math inline">\(D = 671\)</span></h3>
 <div class="layout-chunk" data-layout="l-screen-inset">
 <details>
 <summary>
@@ -2272,12 +2273,12 @@ Show code
 <span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
-<span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
+<span><span class='va'>hill_shannon</span> <span class='op'>=</span> <span class='fu'>calc_hill_shannon</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
 </div>
 <h2 id="health-and-clinical-psychology">Health and Clinical Psychology</h2>
-<h3 id="normalized-shannon-entropy-etax-0.66">Normalized Shannon entropy <span class="math inline">\(\eta(X) = 0.66\)</span></h3>
+<h3 id="fragmentation-hill-shannon-diversity-d-499">Fragmentation (Hill-Shannon Diversity) <span class="math inline">\(D = 499\)</span></h3>
 <div class="layout-chunk" data-layout="l-screen-inset">
 <details>
 <summary>
@@ -2306,12 +2307,12 @@ Show code
 <span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
-<span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
+<span><span class='va'>hill_shannon</span> <span class='op'>=</span> <span class='fu'>calc_hill_shannon</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
 </div>
 <h2 id="educational-and-developmental-psychology">Educational and Developmental Psychology</h2>
-<h3 id="normalized-shannon-entropy-etax-0.72">Normalized Shannon entropy <span class="math inline">\(\eta(X) = 0.72\)</span></h3>
+<h3 id="fragmentation-hill-shannon-diversity-d-429">Fragmentation (Hill-Shannon Diversity) <span class="math inline">\(D = 429\)</span></h3>
 <div class="layout-chunk" data-layout="l-screen-inset">
 <details>
 <summary>
@@ -2340,11 +2341,12 @@ Show code
 <span>  <span class='fu'>summarise</span><span class='op'>(</span>n <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/sum.html'>sum</a></span><span class='op'>(</span><span class='va'>usage_count</span>, na.rm <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>,</span>
 <span>            parent <span class='op'>=</span> <span class='st'>""</span><span class='op'>)</span></span>
 <span></span>
-<span><span class='va'>norm_entropy</span> <span class='op'>=</span> <span class='fu'>calc_norm_entropy</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
+<span><span class='va'>hill_shannon</span> <span class='op'>=</span> <span class='fu'>calc_hill_shannon</span><span class='op'>(</span><span class='va'>tests</span><span class='op'>$</span><span class='va'>n</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
 </div>
 <h2 id="cognitive-psychology">Cognitive Psychology</h2>
+<h3 id="fragmentation-hill-shannon-diversity-d-132">Fragmentation (Hill-Shannon Diversity) <span class="math inline">\(D = 132\)</span></h3>
 <div class="layout-chunk" data-layout="l-screen-inset">
 <details>
 <summary>

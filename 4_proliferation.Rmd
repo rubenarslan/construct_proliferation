@@ -888,28 +888,32 @@ counts_construct_wide <- counts_construct %>%
 inext_all <- iNEXT(counts_all_wide %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
 inext_lumped <- iNEXT(counts_lumped_wide %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
 inext_constructs <- iNEXT(counts_construct_wide %>% tibble::column_to_rownames("Test"), q = 1, datatype = "abundance")
-# inext_all <- iNEXT(abundance_list_all, q = 0, datatype = "abundance")
+```
 
 
+```{r}
 ### 5. Plot the Coverage-Based Rarefaction/Extrapolation Curves
-ggiNEXT(inext_all, type = 1) +
+ggiNEXT(inext_all, type = 1, color.var = 'None') +
   labs(title = "Coverage-Based Diversity Estimates (All Tests)",
        subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
        x = "Sample Coverage",
        y = "Diversity")
 
-ggiNEXT(inext_lumped, type = 1) +
+ggiNEXT(inext_lumped, type = 1, color.var = 'None') +
   labs(title = "Coverage-Based Diversity Estimates (Lumped Tests)",
        subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
        x = "Sample Coverage",
        y = "Diversity")
 
-ggiNEXT(inext_constructs, type = 1) +
+ggiNEXT(inext_constructs, type = 1, color.var = 'None') +
   labs(title = "Coverage-Based Diversity Estimates (Constructs)",
        subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
        x = "Sample Coverage",
        y = "Diversity")
+```
 
+
+```{r}
 inext_combined = bind_rows("all"  = inext_all$AsyEst, "lumped" = inext_lumped$AsyEst, "constructs" = inext_constructs$AsyEst, .id = "type") %>% 
   mutate(Year = as.numeric(Assemblage))
 
@@ -1756,8 +1760,6 @@ entropy_by_year %>%
         plot.title = element_text(face="bold"),
         legend.position = "none") +
     coord_cartesian(clip = "off")
-ggsave("figures/entropy_subdiscipline_all.pdf", width = 8, height = 4)
-ggsave("figures/entropy_subdiscipline_all.png", width = 8, height = 4)
 ```
 
 ### original measures
@@ -1827,8 +1829,6 @@ entropy_by_year %>%
         plot.title = element_text(face="bold"),
         legend.position = "none") +
     coord_cartesian(clip = "off")
-ggsave("figures/entropy_subdiscipline_orig.pdf", width = 8, height = 4)
-ggsave("figures/entropy_subdiscipline_orig.png", width = 8, height = 4)
 ```
 ### constructs
 ```{r}
@@ -1883,8 +1883,6 @@ entropy_by_year %>%
         plot.title.position = "plot",
         plot.title = element_text(face="bold"),
         legend.position = "none")
-ggsave("figures/entropy_subdiscipline_constructs.pdf", width = 8, height = 4)
-ggsave("figures/entropy_subdiscipline_constructs.png", width = 8, height = 4)
 ```
 
 ### By instrument type
@@ -2666,7 +2664,7 @@ entropy_by_class_list <- entropy_by_class %>% select(classification_1, tbl) %>%
 
 ```{r}
 entropy_by_class_inext <- iNEXT(entropy_by_class_list) # , endpoint = 1000, knots = 10
-ggiNEXT(entropy_by_class_inext)
+ggiNEXT(entropy_by_class_inext, color.var = 'None')
 
 entropy_by_class <- entropy_by_class %>% select(-tbl) %>% full_join(
   entropy_by_class_inext$AsyEst %>% rename(classification_1 = Assemblage) %>% 

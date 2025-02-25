@@ -189,3 +189,7 @@ treemap_graph <- function(tests, colors = c("#69D2E7", "#A7DBD8", "#E0E4CC", "#F
     margin = list(l = 0, t = 0, r = 0 , b = 0)
   )
 }
+
+calc_hill_shannon = function(n) {
+  hillR::hill_taxa(n, q = 1)
+}

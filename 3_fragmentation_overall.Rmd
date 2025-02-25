@@ -91,7 +91,7 @@ hill_shannon = calc_hill_shannon(tests$n)
 
 
 ## Overall
-### Fragmentation (Hill-Shannon Diversity) `r sprintf("$\\eta(X) = %.0f$", hill_shannon)`
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
 
 ```{r layout='l-screen-inset',  out.width='100%',   out.height='800px'}
 p <- treemap_graph(tests, colors = pal)

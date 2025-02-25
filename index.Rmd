@@ -36,11 +36,11 @@ tests <- psyctests_info %>%
   arrange(runif(n()))
 
 entropy = entropy(tests$n)
-norm_entropy = calc_norm_entropy(tests$n)
+hill_shannon = calc_hill_shannon(tests$n)
 ```
 
 
-```{r layout='l-screen-inset',echo=FALSE,out.width='100%',fig.cap = sprintf("Treemap showing fragmentation across subfields. Normalized Shannon entropy $\\eta(X) = %.2f$ <br>Click image to open interactive plot.", norm_entropy),fig.link="3_fragmentation_overall.html"}
+```{r layout='l-screen-inset',echo=FALSE,out.width='100%',fig.cap = sprintf("Treemap showing fragmentation across subfields. Hill-Shannon Diversity $D = %.2f$ <br>Click image to open interactive plot.", hill_shannon),fig.link="3_fragmentation_overall.html"}
 knitr::include_graphics("figures/treemap_overall.png")
 ```
 
@@ -63,11 +63,11 @@ hill_shannon = calc_hill_shannon(tests$n)
 
 
 ## Personality and Social Psychology
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
+
 ```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across personality and social psychology. Click image to open interactive plot.", fig.link="3_fragmentation_personality.html"}
 knitr::include_graphics("figures/treemap_personality.png")
 ```
-
-### Fragmentation (Hill-Shannon Diversity) `r sprintf("$\\eta(X) = %.0f$", hill_shannon)`
 
 
 ```{r}
@@ -82,7 +82,7 @@ hill_shannon = calc_hill_shannon(tests$n)
 
 
 ## Industrial/Organizational Psychology
-### Fragmentation (Hill-Shannon Diversity) `r sprintf("$\\eta(X) = %.0f$", hill_shannon)`
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
 ```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across industrial/organizational psychology. Click image to open interactive plot.", fig.link="3_fragmentation_io.html"}
 knitr::include_graphics("figures/treemap_io.png")
 ```
@@ -100,7 +100,7 @@ hill_shannon = calc_hill_shannon(tests$n)
 
 
 ## Health and Clinical Psychology
-### Fragmentation (Hill-Shannon Diversity) `r sprintf("$\\eta(X) = %.0f$", hill_shannon)`
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
 ```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across Health and Clinical Psychology. Click image to open interactive plot.", fig.link="3_fragmentation_clinical.html"}
 knitr::include_graphics("figures/treemap_clinical.png")
 ```
@@ -118,7 +118,7 @@ hill_shannon = calc_hill_shannon(tests$n)
 
 
 ## Educational and Developmental Psychology
-### Fragmentation (Hill-Shannon Diversity) `r sprintf("$\\eta(X) = %.0f$", hill_shannon)`
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
 ```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across Educational and Developmental Psychology. Click image to open interactive plot.", fig.link="3_fragmentation_educational.html"}
 knitr::include_graphics("figures/treemap_educational.png")
 ```
@@ -135,6 +135,8 @@ hill_shannon = calc_hill_shannon(tests$n)
 
 
 ## Cognitive Psychology
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
+
 ```{r layout='l-screen-inset',out.width='100%',fig.cap = "Treemap showing fragmentation across Cognitive Psychology Click image to open interactive plot.", fig.link="3_fragmentation_cognitive.html"}
 knitr::include_graphics("figures/treemap_cognitive.png")
 ```

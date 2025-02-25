@@ -94,7 +94,7 @@ hill_shannon = calc_hill_shannon(tests$n)
 
 
 ## Educational and Developmental Psychology
-### Fragmentation (Hill-Shannon Diversity) `r sprintf("$\\eta(X) = %.0f$", hill_shannon)`
+### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
 ```{r layout='l-screen-inset',  out.width='100%',   out.height='700px'}
 p <- treemap_graph(tests, colors = pal)
 
