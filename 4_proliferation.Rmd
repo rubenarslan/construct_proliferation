@@ -892,28 +892,6 @@ inext_constructs <- iNEXT(counts_construct_wide %>% tibble::column_to_rownames("
 
 
 ```{r}
-### 5. Plot the Coverage-Based Rarefaction/Extrapolation Curves
-ggiNEXT(inext_all, type = 1, color.var = 'None') +
-  labs(title = "Coverage-Based Diversity Estimates (All Tests)",
-       subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
-       x = "Sample Coverage",
-       y = "Diversity")
-
-ggiNEXT(inext_lumped, type = 1, color.var = 'None') +
-  labs(title = "Coverage-Based Diversity Estimates (Lumped Tests)",
-       subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
-       x = "Sample Coverage",
-       y = "Diversity")
-
-ggiNEXT(inext_constructs, type = 1, color.var = 'None') +
-  labs(title = "Coverage-Based Diversity Estimates (Constructs)",
-       subtitle = "q = 0 (Species Richness); x-axis is sample coverage",
-       x = "Sample Coverage",
-       y = "Diversity")
-```
-
-
-```{r}
 inext_combined = bind_rows("all"  = inext_all$AsyEst, "lumped" = inext_lumped$AsyEst, "constructs" = inext_constructs$AsyEst, .id = "type") %>% 
   mutate(Year = as.numeric(Assemblage))
 

@@ -3424,54 +3424,6 @@ Show code
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='co'>### 5. Plot the Coverage-Based Rarefaction/Extrapolation Curves</span></span>
-<span><span class='fu'>ggiNEXT</span><span class='op'>(</span><span class='va'>inext_all</span>, type <span class='op'>=</span> <span class='fl'>1</span>, color.var <span class='op'>=</span> <span class='st'>'None'</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Coverage-Based Diversity Estimates (All Tests)"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"q = 0 (Species Richness); x-axis is sample coverage"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Sample Coverage"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Diversity"</span><span class='op'>)</span></span></code></pre>
-</div>
-</details>
-<pre><code>Error in `palette()`:
-! Insufficient values in manual scale. 30 needed but only 8
-  provided.</code></pre>
-<details>
-<summary>
-Show code
-</summary>
-<div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggiNEXT</span><span class='op'>(</span><span class='va'>inext_lumped</span>, type <span class='op'>=</span> <span class='fl'>1</span>, color.var <span class='op'>=</span> <span class='st'>'None'</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Coverage-Based Diversity Estimates (Lumped Tests)"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"q = 0 (Species Richness); x-axis is sample coverage"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Sample Coverage"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Diversity"</span><span class='op'>)</span></span></code></pre>
-</div>
-</details>
-<pre><code>Error in `palette()`:
-! Insufficient values in manual scale. 30 needed but only 8
-  provided.</code></pre>
-<details>
-<summary>
-Show code
-</summary>
-<div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggiNEXT</span><span class='op'>(</span><span class='va'>inext_constructs</span>, type <span class='op'>=</span> <span class='fl'>1</span>, color.var <span class='op'>=</span> <span class='st'>'None'</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Coverage-Based Diversity Estimates (Constructs)"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"q = 0 (Species Richness); x-axis is sample coverage"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Sample Coverage"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Diversity"</span><span class='op'>)</span></span></code></pre>
-</div>
-</details>
-<pre><code>Error in `palette()`:
-! Insufficient values in manual scale. 30 needed but only 8
-  provided.</code></pre>
-</div>
-<div class="layout-chunk" data-layout="l-body">
-<details>
-<summary>
-Show code
-</summary>
-<div class="sourceCode">
 <pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>inext_combined</span> <span class='op'>=</span> <span class='fu'>bind_rows</span><span class='op'>(</span><span class='st'>"all"</span>  <span class='op'>=</span> <span class='va'>inext_all</span><span class='op'>$</span><span class='va'>AsyEst</span>, <span class='st'>"lumped"</span> <span class='op'>=</span> <span class='va'>inext_lumped</span><span class='op'>$</span><span class='va'>AsyEst</span>, <span class='st'>"constructs"</span> <span class='op'>=</span> <span class='va'>inext_constructs</span><span class='op'>$</span><span class='va'>AsyEst</span>, .id <span class='op'>=</span> <span class='st'>"type"</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
 <span>  <span class='fu'>mutate</span><span class='op'>(</span>Year <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/numeric.html'>as.numeric</a></span><span class='op'>(</span><span class='va'>Assemblage</span><span class='op'>)</span><span class='op'>)</span></span>
 <span></span>
@@ -3486,7 +3438,7 @@ Show code
 <span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-22-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-21-1.png" width="768" /></p>
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <details>
@@ -3530,7 +3482,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-23-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-22-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -3624,7 +3576,7 @@ Show code
 <span>    <span class='fu'>coord_cartesian</span><span class='op'>(</span>clip <span class='op'>=</span> <span class='st'>"off"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-24-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-23-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -3717,7 +3669,7 @@ Show code
 <span>    <span class='fu'>coord_cartesian</span><span class='op'>(</span>clip <span class='op'>=</span> <span class='st'>"off"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-25-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-24-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -3807,7 +3759,7 @@ Show code
 <span>    <span class='fu'>coord_cartesian</span><span class='op'>(</span>clip <span class='op'>=</span> <span class='st'>"off"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-26-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-25-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -3955,7 +3907,7 @@ Show code
 <span>       y <span class='op'>=</span> <span class='st'>"Metric value"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-27-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-26-1.png" width="768" /></p>
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <details>
@@ -3975,7 +3927,7 @@ Show code
 <span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-28-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-27-1.png" width="768" /></p>
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <details>
@@ -3993,7 +3945,7 @@ Show code
 <span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-29-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-28-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4035,7 +3987,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-29-2.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-28-2.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4215,7 +4167,7 @@ Show code
 <span>       y <span class='op'>=</span> <span class='st'>"Metric value"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-30-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-29-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4234,7 +4186,7 @@ Show code
 <span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-30-2.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-29-2.png" width="768" /></p>
 </div>
 <h2 id="old-approach-normalised-shannon-entropy">Old approach: Normalised Shannon Entropy</h2>
 <div class="layout-chunk" data-layout="l-body">
@@ -4348,7 +4300,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-31-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-30-1.png" width="768" /></p>
 </div>
 <h2 id="by-subdiscipline-2">by subdiscipline</h2>
 <h3 id="all-measures">all measures</h3>
@@ -4424,7 +4376,7 @@ Show code
 <span>    <span class='fu'>coord_cartesian</span><span class='op'>(</span>clip <span class='op'>=</span> <span class='st'>"off"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-32-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-31-1.png" width="768" /></p>
 </div>
 <h3 id="original-measures">original measures</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -4500,7 +4452,7 @@ Show code
 <span>    <span class='fu'>coord_cartesian</span><span class='op'>(</span>clip <span class='op'>=</span> <span class='st'>"off"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-33-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-32-1.png" width="768" /></p>
 </div>
 <h3 id="constructs">constructs</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -4562,7 +4514,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-34-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-33-1.png" width="768" /></p>
 </div>
 <h3 id="by-instrument-type-1">By instrument type</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -4634,7 +4586,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-35-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-34-1.png" width="768" /></p>
 </div>
 <h2 id="lorenz-curves">Lorenz curves</h2>
 <div class="layout-chunk" data-layout="l-body">
@@ -4672,7 +4624,7 @@ Show code
 <span>    <span class='fu'>hrbrthemes</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/hrbrthemes/man/scale_x_percent.html'>scale_y_percent</a></span><span class='op'>(</span><span class='st'>"Cumulative percentage of measure market share"</span><span class='op'>)</span> <span class='co'>#+</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-36-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-35-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4689,7 +4641,7 @@ Show code
 <span>    <span class='fu'>hrbrthemes</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/hrbrthemes/man/scale_x_percent.html'>scale_y_percent</a></span><span class='op'>(</span><span class='st'>"Cumulative percentage of measure market share"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-36-2.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-35-2.png" width="768" /></p>
 </div>
 <h1 id="survival">Survival</h1>
 <h2 id="aggregate-stats">aggregate stats</h2>
@@ -4883,7 +4835,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-39-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-38-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4973,7 +4925,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-40-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-39-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5055,7 +5007,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-41-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-40-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5141,7 +5093,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-42-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-41-1.png" width="768" /></p>
 </div>
 <h3 id="by-last-use-in-psycinfo-instead-of-publication-year-in-psyctests">by last use in PsycInfo instead of publication year in PsycTests</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -5218,7 +5170,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-43-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-42-1.png" width="768" /></p>
 </div>
 <h2 id="counts">counts</h2>
 <div class="layout-chunk" data-layout="l-body">
@@ -5292,7 +5244,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-44-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-43-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5364,7 +5316,7 @@ Show code
 <span>                  na.rm <span class='op'>=</span> <span class='cn'>TRUE</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-45-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-44-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5419,7 +5371,7 @@ Show code
 <span>  <span class='fu'>geom_bar</span><span class='op'>(</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-46-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-45-1.png" width="768" /></p>
 </div>
 <p>Expanding the entropy calculation to all coded constructs makes little difference.</p>
 <div class="layout-chunk" data-layout="l-body">
@@ -5511,7 +5463,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-47-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-46-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5944,7 +5896,7 @@ Show code
 <span><span class='fu'>ggiNEXT</span><span class='op'>(</span><span class='va'>entropy_by_instrument_inext</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-50-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-49-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -6091,7 +6043,7 @@ Show code
 19 food frequency questionnaire                 7
 20 life satisfaction scale                      7</code></pre>
 </div>
-<div class="sourceCode" id="cb32"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
 <!--radix_placeholder_article_footer-->
 <!--/radix_placeholder_article_footer-->
 </div>
