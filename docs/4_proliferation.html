@@ -3425,20 +3425,33 @@ Show code
 </summary>
 <div class="sourceCode">
 <pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>inext_combined</span> <span class='op'>=</span> <span class='fu'>bind_rows</span><span class='op'>(</span><span class='st'>"all"</span>  <span class='op'>=</span> <span class='va'>inext_all</span><span class='op'>$</span><span class='va'>AsyEst</span>, <span class='st'>"lumped"</span> <span class='op'>=</span> <span class='va'>inext_lumped</span><span class='op'>$</span><span class='va'>AsyEst</span>, <span class='st'>"constructs"</span> <span class='op'>=</span> <span class='va'>inext_constructs</span><span class='op'>$</span><span class='va'>AsyEst</span>, .id <span class='op'>=</span> <span class='st'>"type"</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
-<span>  <span class='fu'>mutate</span><span class='op'>(</span>Year <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/numeric.html'>as.numeric</a></span><span class='op'>(</span><span class='va'>Assemblage</span><span class='op'>)</span><span class='op'>)</span></span>
+<span>  <span class='fu'>mutate</span><span class='op'>(</span>Year <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/numeric.html'>as.numeric</a></span><span class='op'>(</span><span class='va'>Assemblage</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
+<span>  <span class='fu'>mutate</span><span class='op'>(</span>type <span class='op'>=</span> <span class='fu'>case_match</span><span class='op'>(</span><span class='va'>type</span>, </span>
+<span>                           <span class='st'>"all"</span> <span class='op'>~</span> <span class='st'>"measures"</span>,</span>
+<span>                           <span class='st'>"constructs"</span> <span class='op'>~</span> <span class='st'>"constructs"</span>,</span>
+<span>                            <span class='st'>"lumped"</span> <span class='op'>~</span> <span class='st'>"with translations\n and revisions"</span><span class='op'>)</span><span class='op'>)</span></span>
 <span></span>
 <span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>inext_combined</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>Estimator</span>, ymin <span class='op'>=</span> <span class='va'>LCL</span>, ymax <span class='op'>=</span> <span class='va'>UCL</span>, group <span class='op'>=</span> <span class='va'>type</span>, color <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
 <span>  <span class='fu'>geom_smooth</span><span class='op'>(</span>stat <span class='op'>=</span> <span class='st'>"identity"</span>, size <span class='op'>=</span> <span class='fl'>0.9</span><span class='op'>)</span> <span class='op'>+</span></span>
 <span>  <span class='fu'>facet_grid</span><span class='op'>(</span><span class='va'>Diversity</span> <span class='op'>~</span> <span class='va'>.</span>, scales <span class='op'>=</span> <span class='st'>"free_y"</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>type <span class='op'>=</span> <span class='st'>"qual"</span>, guide <span class='op'>=</span> <span class='st'>"none"</span>, palette <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span> <span class='op'>+</span></span>
 <span>  <span class='fu'>theme_minimal</span><span class='op'>(</span>base_size <span class='op'>=</span> <span class='fl'>14</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Coverage-Standardized Diversity Metrics Across Years"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"Columns: Count type; Rows: Diversity metrics (Richness, Hill-Shannon, Hill-Simpson)"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Year"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Diversity Value"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
+<span>  <span class='fu'>scale_x_continuous</span><span class='op'>(</span><span class='st'>"Usage year as coded in APA PsycInfo"</span>, limits <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='fl'>2022</span><span class='op'>)</span>, </span>
+<span>                     breaks <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/seq.html'>seq</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='fl'>2022</span>, by <span class='op'>=</span> <span class='fl'>1</span><span class='op'>)</span>,</span>
+<span>                     labels <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>1998</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2003</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2008</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2013</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2018</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>"2022"</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>labs</span><span class='op'>(</span>y <span class='op'>=</span> <span class='st'>"Fragmentation index"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-21-1.png" width="768" /></p>
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-21-1.png" width="768" />
+<details>
+<summary>
+Show code
+</summary>
+<div class="sourceCode">
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggsave</span><span class='op'>(</span><span class='st'>"figures/diversity_indices.pdf"</span>, width <span class='op'>=</span> <span class='fl'>8</span>, height <span class='op'>=</span> <span class='fl'>6</span><span class='op'>)</span></span>
+<span><span class='fu'>ggsave</span><span class='op'>(</span><span class='st'>"figures/diversity_indices.png"</span>, width <span class='op'>=</span> <span class='fl'>8</span>, height <span class='op'>=</span> <span class='fl'>6</span><span class='op'>)</span></span></code></pre>
+</div>
+</details>
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <details>
@@ -3446,11 +3459,7 @@ Show code
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>asymptotic_hill_shannon</span> <span class='op'>&lt;-</span> <span class='va'>inext_combined</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>Diversity</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span> <span class='st'>"Shannon diversity"</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
-<span>  <span class='fu'>mutate</span><span class='op'>(</span>type <span class='op'>=</span> <span class='fu'>case_match</span><span class='op'>(</span><span class='va'>type</span>, </span>
-<span>                           <span class='st'>"all"</span> <span class='op'>~</span> <span class='st'>"measures"</span>,</span>
-<span>                           <span class='st'>"constructs"</span> <span class='op'>~</span> <span class='st'>"constructs"</span>,</span>
-<span>                            <span class='st'>"lumped"</span> <span class='op'>~</span> <span class='st'>"with translations\n and revisions"</span><span class='op'>)</span><span class='op'>)</span></span>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>asymptotic_hill_shannon</span> <span class='op'>&lt;-</span> <span class='va'>inext_combined</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>Diversity</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span> <span class='st'>"Shannon diversity"</span><span class='op'>)</span><span class='op'>)</span></span>
 <span></span>
 <span><span class='va'>asymptotic_hill_shannon</span> <span class='op'>%&gt;%</span> </span>
 <span>  <span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>.</span>, <span class='fu'>aes</span><span class='op'>(</span><span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>Estimator</span>, min<span class='op'>=</span><span class='va'>LCL</span>, ymax <span class='op'>=</span> <span class='va'>UCL</span>, color <span class='op'>=</span> <span class='va'>type</span>, fill <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
@@ -3893,69 +3902,51 @@ Show code
 <span>    upper <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/stats/quantile.html'>quantile</a></span><span class='op'>(</span><span class='va'>value</span>, <span class='fl'>0.975</span><span class='op'>)</span></span>
 <span>  <span class='op'>)</span></span>
 <span></span>
-<span></span>
-<span><span class='co'>### 5. Create a facet plot</span></span>
-<span><span class='co'># The facet grid is arranged with metrics in rows and count types in columns.</span></span>
-<span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>rare_long</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, min<span class='op'>=</span><span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>geom_smooth</span><span class='op'>(</span>stat <span class='op'>=</span> <span class='st'>"identity"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='co'># geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +</span></span>
-<span>  <span class='fu'>facet_grid</span><span class='op'>(</span><span class='va'>metric</span> <span class='op'>~</span> <span class='va'>type</span>, scales <span class='op'>=</span> <span class='st'>"free_y"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>theme_minimal</span><span class='op'>(</span>base_size <span class='op'>=</span> <span class='fl'>14</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Rarefaction Diversity Metrics Across Years"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"Columns: Count type; Rows: Diversity metrics"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Year"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Metric value"</span><span class='op'>)</span></span></code></pre>
-</div>
-</details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-26-1.png" width="768" /></p>
-</div>
-<div class="layout-chunk" data-layout="l-body">
-<details>
-<summary>
-Show code
-</summary>
-<div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>rare_long</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>metric</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"richness"</span>, <span class='st'>"hill_shannon"</span>, <span class='st'>"hill_simpson"</span><span class='op'>)</span><span class='op'>)</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, min<span class='op'>=</span><span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span>, color <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>geom_smooth</span><span class='op'>(</span>stat <span class='op'>=</span> <span class='st'>"identity"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='co'># geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +</span></span>
-<span>  <span class='fu'>facet_grid</span><span class='op'>(</span><span class='va'>metric</span> <span class='op'>~</span> <span class='va'>.</span>, scales <span class='op'>=</span> <span class='st'>"free_y"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>theme_minimal</span><span class='op'>(</span>base_size <span class='op'>=</span> <span class='fl'>14</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Rarefaction Diversity Metrics Across Years"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Year"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Metric value"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
-</div>
-</details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-27-1.png" width="768" /></p>
-</div>
-<div class="layout-chunk" data-layout="l-body">
-<details>
-<summary>
-Show code
-</summary>
-<div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>rare_long</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>metric</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span> <span class='st'>"hill_shannon"</span><span class='op'>)</span><span class='op'>)</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, min<span class='op'>=</span><span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span>, color <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>geom_smooth</span><span class='op'>(</span>stat <span class='op'>=</span> <span class='st'>"identity"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>theme_minimal</span><span class='op'>(</span>base_size <span class='op'>=</span> <span class='fl'>14</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Rarefaction Diversity Metrics Across Years"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Year"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Metric value"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
-</div>
-</details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-28-1.png" width="768" />
-<details>
-<summary>
-Show code
-</summary>
-<div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>rarefaction_hill_shannon</span> <span class='op'>&lt;-</span> <span class='va'>rare_long</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>metric</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span> <span class='st'>"hill_shannon"</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
+<span><span class='va'>rare_long</span> <span class='op'>&lt;-</span> <span class='va'>rare_long</span> <span class='op'>%&gt;%</span> </span>
 <span>  <span class='fu'>mutate</span><span class='op'>(</span>type <span class='op'>=</span> <span class='fu'>case_match</span><span class='op'>(</span><span class='va'>type</span>, </span>
 <span>                           <span class='st'>"All tests"</span> <span class='op'>~</span> <span class='st'>"measures"</span>,</span>
 <span>                           <span class='st'>"By construct"</span> <span class='op'>~</span> <span class='st'>"constructs"</span>,</span>
-<span>                            <span class='st'>"Revisions lumped"</span> <span class='op'>~</span> <span class='st'>"with translations\n and revisions"</span><span class='op'>)</span><span class='op'>)</span> </span>
+<span>                            <span class='st'>"Revisions lumped"</span> <span class='op'>~</span> <span class='st'>"with translations\n and revisions"</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
+<span>  <span class='fu'>mutate</span><span class='op'>(</span>metric <span class='op'>=</span> <span class='fu'>case_match</span><span class='op'>(</span><span class='va'>metric</span>,</span>
+<span>                             <span class='st'>'hill_simpson'</span> <span class='op'>~</span> <span class='st'>"Hill-Simpson"</span>,</span>
+<span>                             <span class='st'>'hill_shannon'</span> <span class='op'>~</span> <span class='st'>"Hill-Shannon"</span>,</span>
+<span>                             <span class='st'>'richness'</span> <span class='op'>~</span> <span class='st'>"Species richness"</span><span class='op'>)</span><span class='op'>)</span></span>
+<span></span>
+<span><span class='co'>### 5. Create a facet plot</span></span>
+<span><span class='co'># The facet grid is arranged with metrics in rows and count types in columns.</span></span>
+<span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>rare_long</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>metric</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"Hill-Simpson"</span>, <span class='st'>"Hill-Shannon"</span>, <span class='st'>"Species richness"</span><span class='op'>)</span><span class='op'>)</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, min<span class='op'>=</span><span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span>, color <span class='op'>=</span> <span class='va'>type</span>, fill <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>geom_smooth</span><span class='op'>(</span>stat <span class='op'>=</span> <span class='st'>"identity"</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='co'># geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +</span></span>
+<span>  <span class='fu'>facet_grid</span><span class='op'>(</span><span class='va'>metric</span> <span class='op'>~</span> <span class='va'>.</span>, scales <span class='op'>=</span> <span class='st'>"free_y"</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>type <span class='op'>=</span> <span class='st'>"qual"</span>, guide <span class='op'>=</span> <span class='st'>"none"</span>, palette <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_fill_brewer</span><span class='op'>(</span>type <span class='op'>=</span> <span class='st'>"qual"</span>, guide <span class='op'>=</span> <span class='st'>"none"</span>, palette <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>theme_minimal</span><span class='op'>(</span>base_size <span class='op'>=</span> <span class='fl'>14</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>type <span class='op'>=</span> <span class='st'>"qual"</span>, guide <span class='op'>=</span> <span class='st'>"none"</span>, palette <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_x_continuous</span><span class='op'>(</span><span class='st'>"Usage year as coded in APA PsycInfo"</span>, limits <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='fl'>2022</span><span class='op'>)</span>, </span>
+<span>                     breaks <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/seq.html'>seq</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='fl'>2022</span>, by <span class='op'>=</span> <span class='fl'>1</span><span class='op'>)</span>,</span>
+<span>                     labels <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>1998</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2003</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2008</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2013</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2018</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>"2022"</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>labs</span><span class='op'>(</span>y <span class='op'>=</span> <span class='st'>"Fragmentation index"</span>,</span>
+<span>        title <span class='op'>=</span> <span class='st'>"Standardized by Rarefaction"</span><span class='op'>)</span></span></code></pre>
+</div>
+</details>
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-26-1.png" width="768" />
+<details>
+<summary>
+Show code
+</summary>
+<div class="sourceCode">
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggsave</span><span class='op'>(</span><span class='st'>"figures/diversity_indices_rarefaction.pdf"</span>, width <span class='op'>=</span> <span class='fl'>8</span>, height <span class='op'>=</span> <span class='fl'>6</span><span class='op'>)</span></span>
+<span><span class='fu'>ggsave</span><span class='op'>(</span><span class='st'>"figures/diversity_indices_rarefaction.png"</span>, width <span class='op'>=</span> <span class='fl'>8</span>, height <span class='op'>=</span> <span class='fl'>6</span><span class='op'>)</span></span></code></pre>
+</div>
+</details>
+</div>
+<div class="layout-chunk" data-layout="l-body">
+<details>
+<summary>
+Show code
+</summary>
+<div class="sourceCode">
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='va'>rarefaction_hill_shannon</span> <span class='op'>&lt;-</span> <span class='va'>rare_long</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>metric</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span> <span class='st'>"Hill-Shannon"</span><span class='op'>)</span><span class='op'>)</span></span>
 <span></span>
 <span><span class='va'>rarefaction_hill_shannon</span> <span class='op'>%&gt;%</span> </span>
 <span>  <span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>.</span>, <span class='fu'>aes</span><span class='op'>(</span><span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, min<span class='op'>=</span><span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span>, color <span class='op'>=</span> <span class='va'>type</span>, fill <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
@@ -3987,7 +3978,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-28-2.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-27-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4141,6 +4132,7 @@ Show code
 <span><span class='co'># Combine the rarefaction results from all types:</span></span>
 <span><span class='va'>rare_combined</span> <span class='op'>&lt;-</span> <span class='fu'>bind_rows</span><span class='op'>(</span><span class='va'>rare_all</span>, <span class='va'>rare_lumped</span>, <span class='va'>rare_construct</span><span class='op'>)</span></span>
 <span></span>
+<span></span>
 <span><span class='co'># Pivot the data to long format for the metrics</span></span>
 <span><span class='va'>rare_long</span> <span class='op'>&lt;-</span> <span class='va'>rare_combined</span> <span class='op'>%&gt;%</span> </span>
 <span>  <span class='fu'>pivot_longer</span><span class='op'>(</span>cols <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='va'>richness</span>, <span class='va'>shannon</span>, <span class='va'>gini_simpson</span>, <span class='va'>true_diversity</span><span class='op'>)</span>,</span>
@@ -4156,37 +4148,45 @@ Show code
 <span>    upper <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/stats/quantile.html'>quantile</a></span><span class='op'>(</span><span class='va'>value</span>, <span class='fl'>0.975</span>, na.rm <span class='op'>=</span> <span class='cn'>TRUE</span><span class='op'>)</span></span>
 <span>  <span class='op'>)</span></span>
 <span></span>
-<span><span class='co'>### 5. Create a facet plot of the results</span></span>
-<span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>rare_long</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, ymin <span class='op'>=</span> <span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span></span>
+<span><span class='va'>rare_long</span> <span class='op'>&lt;-</span> <span class='va'>rare_long</span> <span class='op'>%&gt;%</span> </span>
+<span>  <span class='fu'>mutate</span><span class='op'>(</span>type <span class='op'>=</span> <span class='fu'>case_match</span><span class='op'>(</span><span class='va'>type</span>, </span>
+<span>                           <span class='st'>"All tests"</span> <span class='op'>~</span> <span class='st'>"measures"</span>,</span>
+<span>                           <span class='st'>"By construct"</span> <span class='op'>~</span> <span class='st'>"constructs"</span>,</span>
+<span>                            <span class='st'>"Revisions lumped"</span> <span class='op'>~</span> <span class='st'>"with translations\n and revisions"</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>%&gt;%</span> </span>
+<span>  <span class='fu'>mutate</span><span class='op'>(</span>metric <span class='op'>=</span> <span class='fu'>case_match</span><span class='op'>(</span><span class='va'>metric</span>,</span>
+<span>                             <span class='st'>'hill_simpson'</span> <span class='op'>~</span> <span class='st'>"Hill-Simpson"</span>,</span>
+<span>                             <span class='st'>'hill_shannon'</span> <span class='op'>~</span> <span class='st'>"Hill-Shannon"</span>,</span>
+<span>                             <span class='st'>'richness'</span> <span class='op'>~</span> <span class='st'>"Species richness"</span><span class='op'>)</span><span class='op'>)</span></span>
+<span></span>
+<span><span class='co'>### 5. Create a facet plot</span></span>
+<span><span class='co'># The facet grid is arranged with metrics in rows and count types in columns.</span></span>
+<span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>rare_long</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>metric</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"Hill-Simpson"</span>, <span class='st'>"Hill-Shannon"</span>, <span class='st'>"Species richness"</span><span class='op'>)</span><span class='op'>)</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, min<span class='op'>=</span><span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span>, color <span class='op'>=</span> <span class='va'>type</span>, fill <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
 <span>  <span class='fu'>geom_smooth</span><span class='op'>(</span>stat <span class='op'>=</span> <span class='st'>"identity"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>facet_grid</span><span class='op'>(</span><span class='va'>metric</span> <span class='op'>~</span> <span class='va'>type</span>, scales <span class='op'>=</span> <span class='st'>"free_y"</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='co'># geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +</span></span>
+<span>  <span class='fu'>facet_grid</span><span class='op'>(</span><span class='va'>metric</span> <span class='op'>~</span> <span class='va'>.</span>, scales <span class='op'>=</span> <span class='st'>"free_y"</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>type <span class='op'>=</span> <span class='st'>"qual"</span>, guide <span class='op'>=</span> <span class='st'>"none"</span>, palette <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_fill_brewer</span><span class='op'>(</span>type <span class='op'>=</span> <span class='st'>"qual"</span>, guide <span class='op'>=</span> <span class='st'>"none"</span>, palette <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span> <span class='op'>+</span></span>
 <span>  <span class='fu'>theme_minimal</span><span class='op'>(</span>base_size <span class='op'>=</span> <span class='fl'>14</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Rarefaction Diversity Metrics Across Years (Error Added Each Sample)"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"For published tests, counts are adjusted by ±1 with 25% probability anew per simulation"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Year"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Metric value"</span><span class='op'>)</span></span></code></pre>
+<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>type <span class='op'>=</span> <span class='st'>"qual"</span>, guide <span class='op'>=</span> <span class='st'>"none"</span>, palette <span class='op'>=</span> <span class='fl'>2</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>scale_x_continuous</span><span class='op'>(</span><span class='st'>"Usage year as coded in APA PsycInfo"</span>, limits <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='fl'>2022</span><span class='op'>)</span>, </span>
+<span>                     breaks <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/seq.html'>seq</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='fl'>2022</span>, by <span class='op'>=</span> <span class='fl'>1</span><span class='op'>)</span>,</span>
+<span>                     labels <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1993</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>1998</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2003</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2008</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2013</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='fl'>2018</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>""</span>, <span class='st'>"2022"</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
+<span>  <span class='fu'>labs</span><span class='op'>(</span>y <span class='op'>=</span> <span class='st'>"Fragmentation index"</span>,</span>
+<span>        title <span class='op'>=</span> <span class='st'>"Standardized by Rarefaction + 25% off-by-one errors"</span>,</span>
+<span>        subtitle <span class='op'>=</span> <span class='st'>"For published tests, counts are adjusted by ±1 with 25% probability anew per simulation"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-29-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-28-1.png" width="768" />
 <details>
 <summary>
 Show code
 </summary>
 <div class="sourceCode">
-<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggplot</span><span class='op'>(</span><span class='va'>rare_long</span> <span class='op'>%&gt;%</span> <span class='fu'><a href='https://rdrr.io/r/stats/filter.html'>filter</a></span><span class='op'>(</span><span class='va'>metric</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"richness"</span>, <span class='st'>"true_diversity"</span><span class='op'>)</span><span class='op'>)</span>, <span class='fu'>aes</span><span class='op'>(</span>x <span class='op'>=</span> <span class='va'>Year</span>, y <span class='op'>=</span> <span class='va'>mean</span>, min<span class='op'>=</span><span class='va'>lower</span>, ymax <span class='op'>=</span> <span class='va'>upper</span>, color <span class='op'>=</span> <span class='va'>type</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>geom_smooth</span><span class='op'>(</span>stat <span class='op'>=</span> <span class='st'>"identity"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='co'># geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +</span></span>
-<span>  <span class='fu'>facet_grid</span><span class='op'>(</span><span class='va'>metric</span> <span class='op'>~</span> <span class='va'>.</span>, scales <span class='op'>=</span> <span class='st'>"free_y"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>theme_minimal</span><span class='op'>(</span>base_size <span class='op'>=</span> <span class='fl'>14</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>labs</span><span class='op'>(</span>title <span class='op'>=</span> <span class='st'>"Rarefaction Diversity Metrics Across Years + 25% chance off by one"</span>,</span>
-<span>       subtitle <span class='op'>=</span> <span class='st'>"Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)"</span>,</span>
-<span>       x <span class='op'>=</span> <span class='st'>"Year"</span>,</span>
-<span>       y <span class='op'>=</span> <span class='st'>"Metric value"</span><span class='op'>)</span> <span class='op'>+</span></span>
-<span>  <span class='fu'>scale_y_log10</span><span class='op'>(</span><span class='op'>)</span><span class='op'>+</span></span>
-<span>  <span class='fu'>scale_color_brewer</span><span class='op'>(</span>palette <span class='op'>=</span> <span class='st'>"Set1"</span><span class='op'>)</span></span></code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span><span class='fu'>ggsave</span><span class='op'>(</span><span class='st'>"figures/diversity_indices_rarefaction_ob1.pdf"</span>, width <span class='op'>=</span> <span class='fl'>8</span>, height <span class='op'>=</span> <span class='fl'>6</span><span class='op'>)</span></span>
+<span><span class='fu'>ggsave</span><span class='op'>(</span><span class='st'>"figures/diversity_indices_rarefaction_ob1.png"</span>, width <span class='op'>=</span> <span class='fl'>8</span>, height <span class='op'>=</span> <span class='fl'>6</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-29-2.png" width="768" /></p>
 </div>
 <h2 id="old-approach-normalised-shannon-entropy">Old approach: Normalised Shannon Entropy</h2>
 <div class="layout-chunk" data-layout="l-body">
@@ -4300,7 +4300,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-30-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-29-1.png" width="768" /></p>
 </div>
 <h2 id="by-subdiscipline-2">by subdiscipline</h2>
 <h3 id="all-measures">all measures</h3>
@@ -4376,7 +4376,7 @@ Show code
 <span>    <span class='fu'>coord_cartesian</span><span class='op'>(</span>clip <span class='op'>=</span> <span class='st'>"off"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-31-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-30-1.png" width="768" /></p>
 </div>
 <h3 id="original-measures">original measures</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -4452,7 +4452,7 @@ Show code
 <span>    <span class='fu'>coord_cartesian</span><span class='op'>(</span>clip <span class='op'>=</span> <span class='st'>"off"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-32-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-31-1.png" width="768" /></p>
 </div>
 <h3 id="constructs">constructs</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -4514,7 +4514,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-33-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-32-1.png" width="768" /></p>
 </div>
 <h3 id="by-instrument-type-1">By instrument type</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -4586,7 +4586,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-34-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-33-1.png" width="768" /></p>
 </div>
 <h2 id="lorenz-curves">Lorenz curves</h2>
 <div class="layout-chunk" data-layout="l-body">
@@ -4624,7 +4624,7 @@ Show code
 <span>    <span class='fu'>hrbrthemes</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/hrbrthemes/man/scale_x_percent.html'>scale_y_percent</a></span><span class='op'>(</span><span class='st'>"Cumulative percentage of measure market share"</span><span class='op'>)</span> <span class='co'>#+</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-35-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-34-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4641,7 +4641,7 @@ Show code
 <span>    <span class='fu'>hrbrthemes</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/hrbrthemes/man/scale_x_percent.html'>scale_y_percent</a></span><span class='op'>(</span><span class='st'>"Cumulative percentage of measure market share"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-35-2.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-34-2.png" width="768" /></p>
 </div>
 <h1 id="survival">Survival</h1>
 <h2 id="aggregate-stats">aggregate stats</h2>
@@ -4835,7 +4835,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-38-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-37-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -4925,7 +4925,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-39-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-38-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5007,7 +5007,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-40-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-39-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5093,7 +5093,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-41-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-40-1.png" width="768" /></p>
 </div>
 <h3 id="by-last-use-in-psycinfo-instead-of-publication-year-in-psyctests">by last use in PsycInfo instead of publication year in PsycTests</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -5170,7 +5170,7 @@ Show code
 <span>  <span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-42-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-41-1.png" width="768" /></p>
 </div>
 <h2 id="counts">counts</h2>
 <div class="layout-chunk" data-layout="l-body">
@@ -5244,7 +5244,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-43-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-42-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5316,7 +5316,7 @@ Show code
 <span>                  na.rm <span class='op'>=</span> <span class='cn'>TRUE</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-44-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-43-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5371,7 +5371,7 @@ Show code
 <span>  <span class='fu'>geom_bar</span><span class='op'>(</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-45-1.png" width="768" /></p>
+<p><img src="4_proliferation_files/figure-html5/unnamed-chunk-44-1.png" width="768" /></p>
 </div>
 <p>Expanding the entropy calculation to all coded constructs makes little difference.</p>
 <div class="layout-chunk" data-layout="l-body">
@@ -5463,7 +5463,7 @@ Show code
 <span>        legend.position <span class='op'>=</span> <span class='st'>"none"</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-46-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-45-1.png" width="768" />
 <details>
 <summary>
 Show code
@@ -5896,7 +5896,7 @@ Show code
 <span><span class='fu'>ggiNEXT</span><span class='op'>(</span><span class='va'>entropy_by_instrument_inext</span><span class='op'>)</span></span></code></pre>
 </div>
 </details>
-<img src="4_proliferation_files/figure-html5/unnamed-chunk-49-1.png" width="768" />
+<img src="4_proliferation_files/figure-html5/unnamed-chunk-48-1.png" width="768" />
 <details>
 <summary>
 Show code

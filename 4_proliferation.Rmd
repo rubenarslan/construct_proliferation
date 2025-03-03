@@ -893,26 +893,29 @@ inext_constructs <- iNEXT(counts_construct_wide %>% tibble::column_to_rownames("
 
 ```{r}
 inext_combined = bind_rows("all"  = inext_all$AsyEst, "lumped" = inext_lumped$AsyEst, "constructs" = inext_constructs$AsyEst, .id = "type") %>% 
-  mutate(Year = as.numeric(Assemblage))
-
-ggplot(inext_combined, aes(x = Year, y = Estimator, ymin = LCL, ymax = UCL, group = type, color = type)) +
-  geom_smooth(stat = "identity", size = 0.9) +
-  facet_grid(Diversity ~ ., scales = "free_y") +
-  theme_minimal(base_size = 14) +
-  labs(title = "Coverage-Standardized Diversity Metrics Across Years",
-       subtitle = "Columns: Count type; Rows: Diversity metrics (Richness, Hill-Shannon, Hill-Simpson)",
-       x = "Year",
-       y = "Diversity Value") +
-  scale_color_brewer(palette = "Set1")
-```
-
-
-```{r}
-asymptotic_hill_shannon <- inext_combined %>% filter(Diversity %in% c( "Shannon diversity")) %>% 
+  mutate(Year = as.numeric(Assemblage)) %>% 
   mutate(type = case_match(type, 
                            "all" ~ "measures",
                            "constructs" ~ "constructs",
                             "lumped" ~ "with translations\n and revisions"))
+
+ggplot(inext_combined, aes(x = Year, y = Estimator, ymin = LCL, ymax = UCL, group = type, color = type)) +
+  geom_smooth(stat = "identity", size = 0.9) +
+  facet_grid(Diversity ~ ., scales = "free_y") +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  theme_minimal(base_size = 14) +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2022), 
+                     breaks = seq(1993, 2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
+  labs(y = "Fragmentation index")
+
+ggsave("figures/diversity_indices.pdf", width = 8, height = 6)
+ggsave("figures/diversity_indices.png", width = 8, height = 6)
+```
+
+
+```{r}
+asymptotic_hill_shannon <- inext_combined %>% filter(Diversity %in% c( "Shannon diversity"))
 
 asymptotic_hill_shannon %>% 
   ggplot(., aes(Year, y = Estimator, min=LCL, ymax = UCL, color = type, fill = type)) +
@@ -1306,50 +1309,38 @@ rare_long <- rare_long %>%
     upper = quantile(value, 0.975)
   )
 
-
-### 5. Create a facet plot
-# The facet grid is arranged with metrics in rows and count types in columns.
-ggplot(rare_long, aes(x = Year, y = mean, min=lower, ymax = upper)) +
-  geom_smooth(stat = "identity") +
-  # geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +
-  facet_grid(metric ~ type, scales = "free_y") +
-  theme_minimal(base_size = 14) +
-  labs(title = "Rarefaction Diversity Metrics Across Years",
-       subtitle = "Columns: Count type; Rows: Diversity metrics",
-       x = "Year",
-       y = "Metric value")
-```
-
-
-```{r}
-ggplot(rare_long %>% filter(metric %in% c("richness", "hill_shannon", "hill_simpson")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type)) +
-  geom_smooth(stat = "identity") +
-  # geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +
-  facet_grid(metric ~ ., scales = "free_y") +
-  theme_minimal(base_size = 14) +
-  labs(title = "Rarefaction Diversity Metrics Across Years",
-       subtitle = "Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)",
-       x = "Year",
-       y = "Metric value") +
-  scale_color_brewer(palette = "Set1")
-```
-
-```{r}
-ggplot(rare_long %>% filter(metric %in% c( "hill_shannon")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type)) +
-  geom_smooth(stat = "identity") +
-  theme_minimal(base_size = 14) +
-  labs(title = "Rarefaction Diversity Metrics Across Years",
-       subtitle = "Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)",
-       x = "Year",
-       y = "Metric value") +
-  scale_color_brewer(palette = "Set1")
-
-
-rarefaction_hill_shannon <- rare_long %>% filter(metric %in% c( "hill_shannon")) %>% 
+rare_long <- rare_long %>% 
   mutate(type = case_match(type, 
                            "All tests" ~ "measures",
                            "By construct" ~ "constructs",
-                            "Revisions lumped" ~ "with translations\n and revisions")) 
+                            "Revisions lumped" ~ "with translations\n and revisions")) %>% 
+  mutate(metric = case_match(metric,
+                             'hill_simpson' ~ "Hill-Simpson",
+                             'hill_shannon' ~ "Hill-Shannon",
+                             'richness' ~ "Species richness"))
+
+### 5. Create a facet plot
+# The facet grid is arranged with metrics in rows and count types in columns.
+ggplot(rare_long %>% filter(metric %in% c("Hill-Simpson", "Hill-Shannon", "Species richness")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type, fill = type)) +
+  geom_smooth(stat = "identity") +
+  # geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +
+  facet_grid(metric ~ ., scales = "free_y") +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  scale_fill_brewer(type = "qual", guide = "none", palette = 2) +
+  theme_minimal(base_size = 14) +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2022), 
+                     breaks = seq(1993, 2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
+  labs(y = "Fragmentation index",
+        title = "Standardized by Rarefaction")
+ggsave("figures/diversity_indices_rarefaction.pdf", width = 8, height = 6)
+ggsave("figures/diversity_indices_rarefaction.png", width = 8, height = 6)
+
+```
+
+```{r}
+rarefaction_hill_shannon <- rare_long %>% filter(metric %in% c( "Hill-Shannon"))
 
 rarefaction_hill_shannon %>% 
   ggplot(., aes(Year, y = mean, min=lower, ymax = upper, color = type, fill = type)) +
@@ -1522,6 +1513,7 @@ rare_construct <- run_rarefaction(counts_construct, "By construct")
 # Combine the rarefaction results from all types:
 rare_combined <- bind_rows(rare_all, rare_lumped, rare_construct)
 
+
 # Pivot the data to long format for the metrics
 rare_long <- rare_combined %>% 
   pivot_longer(cols = c(richness, shannon, gini_simpson, true_diversity),
@@ -1537,27 +1529,35 @@ rare_long <- rare_long %>%
     upper = quantile(value, 0.975, na.rm = TRUE)
   )
 
-### 5. Create a facet plot of the results
-ggplot(rare_long, aes(x = Year, y = mean, ymin = lower, ymax = upper)) +
-  geom_smooth(stat = "identity") +
-  facet_grid(metric ~ type, scales = "free_y") +
-  theme_minimal(base_size = 14) +
-  labs(title = "Rarefaction Diversity Metrics Across Years (Error Added Each Sample)",
-       subtitle = "For published tests, counts are adjusted by ±1 with 25% probability anew per simulation",
-       x = "Year",
-       y = "Metric value")
 
-ggplot(rare_long %>% filter(metric %in% c("richness", "true_diversity")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type)) +
+rare_long <- rare_long %>% 
+  mutate(type = case_match(type, 
+                           "All tests" ~ "measures",
+                           "By construct" ~ "constructs",
+                            "Revisions lumped" ~ "with translations\n and revisions")) %>% 
+  mutate(metric = case_match(metric,
+                             'hill_simpson' ~ "Hill-Simpson",
+                             'hill_shannon' ~ "Hill-Shannon",
+                             'richness' ~ "Species richness"))
+
+### 5. Create a facet plot
+# The facet grid is arranged with metrics in rows and count types in columns.
+ggplot(rare_long %>% filter(metric %in% c("Hill-Simpson", "Hill-Shannon", "Species richness")), aes(x = Year, y = mean, min=lower, ymax = upper, color = type, fill = type)) +
   geom_smooth(stat = "identity") +
   # geom_line(stat = 'summary', fun = mean, color = "blue", size = 0.7, group = 1) +
   facet_grid(metric ~ ., scales = "free_y") +
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  scale_fill_brewer(type = "qual", guide = "none", palette = 2) +
   theme_minimal(base_size = 14) +
-  labs(title = "Rarefaction Diversity Metrics Across Years + 25% chance off by one",
-       subtitle = "Columns: Count type; Rows: Diversity metrics (richness, Shannon, Gini-Simpson)",
-       x = "Year",
-       y = "Metric value") +
-  scale_y_log10()+
-  scale_color_brewer(palette = "Set1")
+  scale_color_brewer(type = "qual", guide = "none", palette = 2) +
+  scale_x_continuous("Usage year as coded in APA PsycInfo", limits = c(1993, 2022), 
+                     breaks = seq(1993, 2022, by = 1),
+                     labels = c(1993, "", "", "", "", 1998, "", "", "", "", 2003, "", "", "", "", 2008, "", "", "", "", 2013, "", "", "", "", 2018, "", "", "", "2022")) +
+  labs(y = "Fragmentation index",
+        title = "Standardized by Rarefaction + 25% off-by-one errors",
+        subtitle = "For published tests, counts are adjusted by ±1 with 25% probability anew per simulation")
+ggsave("figures/diversity_indices_rarefaction_ob1.pdf", width = 8, height = 6)
+ggsave("figures/diversity_indices_rarefaction_ob1.png", width = 8, height = 6)
 ```
 
 

@@ -100,7 +100,8 @@ p <- treemap_graph(tests, colors = pal)
 
 save_image(p, "figures/treemap_personality.png", width = 1400, height = 700, 
            scale = 5)
-
+save_image(p, "figures/treemap_personality.pdf", width = 1400, height = 700, 
+           scale = 5)
 p
 ```
 
