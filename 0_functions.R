@@ -170,10 +170,10 @@ treemap_graph <- function(tests, colors = c("#69D2E7", "#A7DBD8", "#E0E4CC", "#F
     parents = tests$parent,
     values= tests$n,
     text = str_c(if_else(tests$Name == tests$shortName, "", str_c(tests$Name, "<br>")), tests$DOI),
-    marker = list(line = list(width = 0.1)
+    marker = list(line = list(width = 0.1, color = 'white')
                   , colors = rep(colors, length.out = nrow(tests))
     ),
-    tiling = list(pad = 0.1,
+    tiling = list(pad = 0,
                   packing = "squarify",
                   squarifyratio = (1 + sqrt(5)) / 2),
     # insidetextfont = list(size = I(50), color = "green", mode = "hide"),

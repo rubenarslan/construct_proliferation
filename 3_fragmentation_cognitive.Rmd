@@ -7,7 +7,7 @@ title: "Construct proliferation: Cognitive Psychology"
 knitr::opts_chunk$set(echo = TRUE, error = T, warning = F, message = F)
 
 library(groundhog)
-groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "knitr", "readr",
+groundhog.library(c("tidyverse", "entropy", "ggrepel", "cowplot", "readr",
                     "RColorBrewer", "plotly", "gglorenz", "rio", "hrbrthemes", "hillR"), 
                   date = "2024-02-24")
 theme_set(theme_minimal(base_size = 14))
@@ -93,6 +93,8 @@ hill_shannon = calc_hill_shannon(tests$n)
 ## Cognitive Psychology
 ### Fragmentation (Hill-Shannon Diversity) `r sprintf("$D = %.0f$", hill_shannon)`
 ```{r layout='l-screen-inset',  out.width='100%',   out.height='700px'}
+
+
 p <- treemap_graph(tests, colors = pal)
 
 save_image(p, "figures/treemap_cognitive.png", width = 1400, height = 700, 
